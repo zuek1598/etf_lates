@@ -11,12 +11,12 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # Import new components
-from utilities.shared_utils import extract_column
+from utilities.shared_utils import extract_column, extract_adjusted_price
 from analyzers.risk_component import RiskComponent
 from analyzers.ml_ensemble import MLEnsemble
 from analyzers.volume_intelligence import VolumeIntelligence
 from analyzers.etf_risk_classifier import ETFRiskClassifier
-from analyzers.scoring_system import ScoringRankingSystem
+from analyzers.scoring_system_growth import GrowthScoringSystem
 from indicators.kalman_hull import calculate_adaptive_kalman_hull
 from data_manager.data_manager import ETFDataManager as ETFDatabase
 from utilities.validators import validate_output
@@ -30,7 +30,7 @@ class ETFAnalysisSystem:
         self.volume_intelligence = VolumeIntelligence()
         self.risk_classifier = ETFRiskClassifier()
         self.etf_database = ETFDatabase()
-        self.scoring_system = ScoringRankingSystem()
+        self.scoring_system = GrowthScoringSystem()
         self.vix_data = None
         self.benchmark_data = {}
         
@@ -274,7 +274,7 @@ class ETFAnalysisSystem:
             # Calculate returns and latest price from data
             data = etf_data['data']
             if len(data) > 0:
-                prices = extract_column(data, 'Close')
+                prices = extract_adjusted_price(data)
                 if prices is not None and len(prices) > 0:
                     latest_price = float(prices.iloc[-1])
                     combined_results[ticker]['latest_price'] = latest_price
@@ -293,9 +293,9 @@ class ETFAnalysisSystem:
                     else:
                         combined_results[ticker]['ytd_return'] = 0.0
                     
-                    # 1-year return (252 trading days)
+                    # 1-year return (252 trading days) - adjusted for corporate actions
                     if len(prices) >= 252:
-                        one_year_return = (prices.iloc[-1] - prices.iloc[-252]) / prices.iloc[-252]
+                        one_year_return = self.calculate_adjusted_return(prices, 252)
                         combined_results[ticker]['one_year_return'] = float(one_year_return)
                     else:
                         combined_results[ticker]['one_year_return'] = 0.0
@@ -310,6 +310,39 @@ class ETFAnalysisSystem:
         
         return combined_results
     
+    def calculate_adjusted_return(self, prices: pd.Series, period_days: int = 252) -> float:
+        """
+        Calculate return over period, flagging extreme corporate actions.
+
+        Args:
+            prices: Adjusted price series
+            period_days: Number of trading days to look back
+
+        Returns:
+            Float: Adjusted return percentage, or NaN if unreliable due to corporate actions
+        """
+        if len(prices) < period_days:
+            return 0.0
+
+        current_price = prices.iloc[-1]
+        past_price = prices.iloc[-period_days]
+
+        # Calculate raw return
+        raw_return = (current_price - past_price) / past_price
+
+        # Check for extreme jumps that indicate corporate actions
+        # If there's a single day change > 300% or < -50%, mark as unreliable
+        daily_returns = prices.pct_change()
+        max_daily_jump = daily_returns.max()
+        min_daily_jump = daily_returns.min()
+
+        if max_daily_jump > 3.0 or min_daily_jump < -0.5:
+            # Extreme corporate action detected - return is not meaningful
+            return float('nan')
+
+        return float(raw_return)
+
+
     def run_full_analysis(self, etf_tickers: List[str] = None) -> Dict:
         """Run complete analysis pipeline"""
         if etf_tickers is None:
@@ -344,12 +377,26 @@ class ETFAnalysisSystem:
         
         # Add composite scores back to analysis results
         for category, etf_list in rankings.items():
-            for ticker, score in etf_list:
+            for ticker, result in etf_list:
                 if ticker in all_results:
-                    all_results[ticker]['composite_score'] = score
+                    all_results[ticker]['composite_score'] = result['composite_score']
+                    # Store component scores (NEW - Phase 1.2)
+                    all_results[ticker]['component_scores'] = result.get('components', {})
+                    all_results[ticker]['adjusted_components'] = result.get('adjusted_components', {})
+                    # Store position size recommendation
+                    all_results[ticker]['position_size'] = result.get('position_size', 0.0)
         
         # Step 4: Get top ETFs
-        top_etfs = self.scoring_system.get_top_etfs(rankings, top_n=10)
+        top_opportunities = self.scoring_system.get_top_opportunities(rankings, top_n=10, min_score=0.0, focus_categories=['LOW', 'MEDIUM', 'HIGH'])
+        
+        # Convert to format expected by rest of system
+        top_etfs = []
+        for opp in top_opportunities:
+            top_etfs.append({
+                'ticker': opp['ticker'],
+                'score': opp['composite_score'],
+                'category': opp['risk_category']
+            })
         
         print(f"\n{'='*60}")
         print("TOP 10 ETFs BY COMPOSITE SCORE")

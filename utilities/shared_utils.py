@@ -31,6 +31,20 @@ def extract_price_data(etf_data: pd.DataFrame) -> pd.Series:
     return extract_column(etf_data, 'Close')
 
 
+def extract_adjusted_price(etf_data: pd.DataFrame) -> Union[pd.Series, None]:
+    """Extract adjusted close price data from ETF DataFrame"""
+    # Try 'Adj Close' first (yfinance standard)
+    if 'Adj Close' in etf_data.columns:
+        return extract_column(etf_data, 'Adj Close')
+    
+    # Fallback to regular Close if Adj Close not available
+    if 'Close' in etf_data.columns:
+        return extract_column(etf_data, 'Close')
+    
+    # Return None if no price data available
+    return None
+
+
 def extract_volume_data(etf_data: pd.DataFrame) -> pd.Series:
     """Extract volume data from ETF DataFrame"""
     if 'Volume' in etf_data.columns:

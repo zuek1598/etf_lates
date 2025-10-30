@@ -253,9 +253,9 @@ class GrowthScoringSystem:
     
     def apply_growth_penalties(self, composite: float, analysis: Dict, risk_category: str) -> float:
         """
-        Apply penalties - LESS aggressive for HIGH risk (accept volatility)
+        Apply additive penalties with maximum caps - prevents over-penalization
         """
-        # Penalty scaling by risk category
+        # Penalty scaling by risk category (less aggressive for HIGH risk)
         penalty_scales = {
             'LOW': 1.0,      # Full penalties
             'MEDIUM': 0.7,   # 70% of penalties
@@ -263,44 +263,71 @@ class GrowthScoringSystem:
         }
         scale = penalty_scales.get(risk_category, 1.0)
         
-        # CVaR penalty (scaled down for HIGH risk)
+        penalty_points = 0.0  # Additive penalty system
+        
+        # CVaR penalty (additive)
         cvar = analysis.get('cvar', 0.0)
         if not np.isnan(cvar):
             if cvar < -0.50:  # Extreme tail risk (< -50%)
-                composite *= (1.0 - 0.25 * scale)
+                penalty_points += 20 * scale  # 20 points
             elif cvar < -0.30:  # High tail risk (-30% to -50%)
-                composite *= (1.0 - 0.15 * scale)
+                penalty_points += 15 * scale  # 15 points
             elif cvar < -0.20:  # Moderate tail risk (-20% to -30%)
-                composite *= (1.0 - 0.08 * scale)
+                penalty_points += 10 * scale  # 10 points
         
-        # Liquidity penalty (important for all categories)
+        # Liquidity penalty (additive)
         avg_daily_volume = analysis.get('avg_daily_volume', np.nan)
         if not np.isnan(avg_daily_volume):
             if avg_daily_volume < 50_000:  # Very low liquidity
-                composite *= 0.60  # 40% penalty (no scale - critical)
+                penalty_points += 15 * scale  # 15 points
             elif avg_daily_volume < 200_000:  # Low liquidity
-                composite *= 0.80  # 20% penalty
+                penalty_points += 10 * scale  # 10 points
             elif avg_daily_volume < 500_000:  # Moderate liquidity
-                composite *= 0.92  # 8% penalty
+                penalty_points += 5 * scale   # 5 points
         
-        # Amihud penalty (scaled)
+        # Amihud penalty (additive)
         amihud = analysis.get('amihud', np.nan)
         if not np.isnan(amihud):
-            if amihud > 10.0:
-                composite *= (1.0 - 0.20 * scale)
-            elif amihud > 5.0:
-                composite *= (1.0 - 0.10 * scale)
+            if amihud > 10.0:  # Very illiquid
+                penalty_points += 10 * scale  # 10 points
+            elif amihud > 5.0:  # Illiquid
+                penalty_points += 5 * scale   # 5 points
         
-        # Zero volume days (scaled)
+        # Zero volume days penalty (additive)
         zero_volume_days = analysis.get('zero_volume_days', 0)
-        if zero_volume_days > 25:
-            composite *= (1.0 - 0.25 * scale)
+        if zero_volume_days > 25:  # Frequent zero volume
+            penalty_points += 15 * scale  # 15 points
         elif zero_volume_days > 15:
-            composite *= (1.0 - 0.15 * scale)
+            penalty_points += 10 * scale  # 10 points
         elif zero_volume_days > 8:
-            composite *= (1.0 - 0.08 * scale)
+            penalty_points += 5 * scale   # 5 points
         
-        return max(0.0, min(100.0, composite))
+        # Expense ratio penalty (additive)
+        expense_ratio = analysis.get('expense_ratio', np.nan)
+        if not np.isnan(expense_ratio):
+            if expense_ratio > 0.0100:  # > 1.00% (very high)
+                penalty_points += 15 * scale  # 15 points
+            elif expense_ratio > 0.0075:  # 0.75-1.00% (high)
+                penalty_points += 10 * scale  # 10 points
+            elif expense_ratio > 0.0050:  # 0.50-0.75% (above average)
+                penalty_points += 5 * scale   # 5 points
+        
+        # AUM penalty (additive)
+        aum_aud = analysis.get('aum_aud', np.nan)
+        if not np.isnan(aum_aud):
+            if aum_aud < 25_000_000:  # < 25M (very small)
+                penalty_points += 15 * scale  # 15 points
+            elif aum_aud < 50_000_000:  # 25-50M (small)
+                penalty_points += 10 * scale  # 10 points
+            elif aum_aud < 100_000_000:  # 50-100M (below average)
+                penalty_points += 5 * scale   # 5 points
+        
+        # Cap total penalties at 30 points maximum (prevents over-penalization)
+        penalty_points = min(penalty_points, 30.0)
+        
+        # Apply as percentage reduction from composite score
+        penalty_factor = 1.0 - (penalty_points / 100.0)
+        return max(0.0, composite * penalty_factor)
     
     def rank_etfs_by_category(self, analysis_results: Dict, risk_classifications: Dict) -> Dict:
         """Rank ETFs within their risk categories"""
