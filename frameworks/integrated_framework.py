@@ -13,7 +13,7 @@ def calculate_complete_risk_assessment() -> dict:
     Calculate both frameworks and return complete risk assessment
     """
     print("\n" + "="*80)
-    print("🌍 COMPLETE MACRO + GEOPOLITICAL RISK ASSESSMENT")
+    print("[EMOJI] COMPLETE MACRO + GEOPOLITICAL RISK ASSESSMENT")
     print("="*80)
     
     # Calculate both frameworks
@@ -33,7 +33,7 @@ def display_complete_analysis(result: dict):
     geo = result['geopolitical']
     
     print("\n" + "="*80)
-    print("📊 MACRO ECONOMIC ENVIRONMENT")
+    print("[EMOJI] MACRO ECONOMIC ENVIRONMENT")
     print("="*80)
     print(f"Regime:           {macro['regime']}")
     print(f"Multiplier:       {macro['multiplier']:.4f} (0.75-1.25)")
@@ -43,7 +43,7 @@ def display_complete_analysis(result: dict):
         print(f"  • {factor.replace('_', ' ').title():<30} {score:>6.2f}/100")
     
     print("\n" + "="*80)
-    print("⚔️  GEOPOLITICAL RISK ENVIRONMENT")
+    print("[EMOJI]  GEOPOLITICAL RISK ENVIRONMENT")
     print("="*80)
     print(f"Risk Level:       {geo['risk_level']}")
     print(f"Risk Score:       {geo['risk_score']:.2f}/100")
@@ -52,13 +52,13 @@ def display_complete_analysis(result: dict):
         print(f"  • {pillar.replace('_', ' ').title():<30} {score:>6.2f}/100")
     
     print("\n" + "="*80)
-    print("💡 INTEGRATED RECOMMENDATIONS")
+    print("[EMOJI] INTEGRATED RECOMMENDATIONS")
     print("="*80)
     
     # Combined interpretation
     if macro['regime'] == 'CRISIS' and geo['risk_level'] in ['SEVERE', 'EXTREME']:
         print("""
-🔴 MAXIMUM DEFENSE MODE
+[EMOJI] MAXIMUM DEFENSE MODE
 • Both macro and geopolitical risks elevated
 • Reduce all risk assets significantly
 • Increase cash, treasuries, gold
@@ -94,7 +94,7 @@ def display_complete_analysis(result: dict):
         """)
     
     print("\n" + "="*80)
-    print("📐 APPLICATION GUIDE")
+    print("[EMOJI] APPLICATION GUIDE")
     print("="*80)
     print(f"""
 To apply these frameworks to your forecasts:
@@ -115,10 +115,10 @@ To apply these frameworks to your forecasts:
    final_allocation = base_allocation × macro_multiplier × geo_adjusted_confidence
 
 Current Risk Parameters:
-├─ Macro Multiplier:    {macro['multiplier']:.4f}
-├─ Geo Risk Score:      {geo['risk_score']:.2f}/100
-├─ Combined Signal:     {macro['regime']} + {geo['risk_level']}
-└─ Suggested Action:    {"DEFENSIVE" if macro['regime'] == 'CRISIS' or geo['risk_level'] in ['HIGH', 'SEVERE', 'EXTREME'] else "BALANCED" if macro['regime'] == 'TRANSITIONAL' else "AGGRESSIVE"}
+[EMOJI] Macro Multiplier:    {macro['multiplier']:.4f}
+[EMOJI] Geo Risk Score:      {geo['risk_score']:.2f}/100
+[EMOJI] Combined Signal:     {macro['regime']} + {geo['risk_level']}
+[EMOJI] Suggested Action:    {"DEFENSIVE" if macro['regime'] == 'CRISIS' or geo['risk_level'] in ['HIGH', 'SEVERE', 'EXTREME'] else "BALANCED" if macro['regime'] == 'TRANSITIONAL' else "AGGRESSIVE"}
     """)
     
     print("="*80 + "\n")
@@ -127,7 +127,7 @@ def export_results(result: dict, filename: str = 'complete_risk_assessment.json'
     """Export complete results to JSON"""
     with open(filename, 'w') as f:
         json.dump(result, f, indent=2, default=str)
-    print(f"✅ Complete analysis saved to: {filename}\n")
+    print(f"[EMOJI] Complete analysis saved to: {filename}\n")
 
 if __name__ == "__main__":
     # Calculate complete assessment

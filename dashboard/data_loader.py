@@ -319,14 +319,14 @@ if __name__ == "__main__":
         start = time.time()
         universe = loader.load_universe()
         load_time = time.time() - start
-        print(f"   ✓ Loaded {len(universe)} ETFs in {load_time*1000:.1f}ms")
+        print(f"   [EMOJI] Loaded {len(universe)} ETFs in {load_time*1000:.1f}ms")
         
         # Test cached loading
         print("\n2. Loading universe again (cached)...")
         start = time.time()
         universe = loader.load_universe()
         cached_time = time.time() - start
-        print(f"   ✓ Loaded {len(universe)} ETFs in {cached_time*1000:.1f}ms")
+        print(f"   [EMOJI] Loaded {len(universe)} ETFs in {cached_time*1000:.1f}ms")
         print(f"   Speedup: {load_time/cached_time:.0f}x faster")
         
         # Test rankings loading
@@ -335,13 +335,13 @@ if __name__ == "__main__":
             start = time.time()
             rankings = loader.load_rankings(risk)
             load_time = time.time() - start
-            print(f"   ✓ {risk}: {len(rankings)} ETFs in {load_time*1000:.1f}ms")
+            print(f"   [EMOJI] {risk}: {len(rankings)} ETFs in {load_time*1000:.1f}ms")
         
         # Test metadata
         print("\n4. Loading metadata...")
         metadata = loader.load_metadata()
-        print(f"   ✓ Analysis date: {metadata.get('analysis_date', 'N/A')}")
-        print(f"   ✓ Total ETFs: {metadata.get('total_etfs', 0)}")
+        print(f"   [EMOJI] Analysis date: {metadata.get('analysis_date', 'N/A')}")
+        print(f"   [EMOJI] Total ETFs: {metadata.get('total_etfs', 0)}")
         
         # Test filtering
         print("\n5. Testing filters...")
@@ -350,19 +350,19 @@ if __name__ == "__main__":
             min_score=70.0,
             search_term='vanguard'
         )
-        print(f"   ✓ Found {len(filtered)} ETFs matching filters")
+        print(f"   [EMOJI] Found {len(filtered)} ETFs matching filters")
         
         # Test summary stats
         print("\n6. Summary statistics...")
         stats = loader.get_summary_stats()
-        print(f"   ✓ Average composite score: {stats['avg_composite_score']:.1f}")
-        print(f"   ✓ Top ETF: {stats['top_etf']} (Score: {stats['top_score']:.1f})")
-        print(f"   ✓ Risk breakdown: {stats['risk_breakdown']}")
+        print(f"   [EMOJI] Average composite score: {stats['avg_composite_score']:.1f}")
+        print(f"   [EMOJI] Top ETF: {stats['top_etf']} (Score: {stats['top_score']:.1f})")
+        print(f"   [EMOJI] Risk breakdown: {stats['risk_breakdown']}")
         
         print("\n" + "=" * 60)
-        print("✅ All tests passed!")
+        print("[EMOJI] All tests passed!")
         
     except FileNotFoundError as e:
-        print(f"\n❌ Error: {e}")
+        print(f"\n[EMOJI] Error: {e}")
         print("\nPlease run the following command first:")
         print("   python etf_dashboard.py")

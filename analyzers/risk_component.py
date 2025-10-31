@@ -374,7 +374,7 @@ class RiskComponent:
                 'information_ratio': np.nan,
                 'risk_score': 0.5,
                 'risk_category': 'UNKNOWN',
-                'quality_flag': '🔴'
+                'quality_flag': '[EMOJI]'
             }
         
         # Calculate each component
@@ -429,13 +429,13 @@ class RiskComponent:
         # Classify risk (based on overall score)
         if risk_score < 0.35:
             risk_category = 'LOW'
-            quality_flag = '✅'
+            quality_flag = '[EMOJI]'
         elif risk_score < 0.65:
             risk_category = 'MEDIUM'
             quality_flag = '~'
         else:
             risk_category = 'HIGH'
-            quality_flag = '⚠️'
+            quality_flag = '[EMOJI]'
         
         return {
             'cvar': cvar,

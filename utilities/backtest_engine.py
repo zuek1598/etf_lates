@@ -388,7 +388,7 @@ def run_backtest_on_universe(tickers: List[str] = None, sample_size: int = None)
     # Get all historical data files
     historical_dir = Path(__file__).parent.parent / 'data' / 'historical'
     if not historical_dir.exists():
-        print(f"❌ No historical data found in {historical_dir}")
+        print(f"[EMOJI] No historical data found in {historical_dir}")
         return pd.DataFrame()
     
     # Get available tickers
@@ -402,7 +402,7 @@ def run_backtest_on_universe(tickers: List[str] = None, sample_size: int = None)
         test_tickers = available_tickers
     
     print(f"\n{'='*80}")
-    print(f"🧪 BACKTESTING {len(test_tickers)} ETFs")
+    print(f"[EMOJI] BACKTESTING {len(test_tickers)} ETFs")
     print(f"{'='*80}\n")
     
     results = []
@@ -417,7 +417,7 @@ def run_backtest_on_universe(tickers: List[str] = None, sample_size: int = None)
             prices = extract_column(data, 'Close')
             
             if prices is None or len(prices) < 210:  # Min 150 train + 60 test
-                print(f"  [{i}/{len(test_tickers)}] ❌ {ticker}: Insufficient data ({len(prices) if prices is not None else 0} days)")
+                print(f"  [{i}/{len(test_tickers)}] [EMOJI] {ticker}: Insufficient data ({len(prices) if prices is not None else 0} days)")
                 continue
             
             # Classify risk category
@@ -438,17 +438,17 @@ def run_backtest_on_universe(tickers: List[str] = None, sample_size: int = None)
             result = engine.backtest_single_etf(prices, data, risk_category)
             
             if result['status'] == 'success':
-                print(f"  [{i}/{len(test_tickers)}] ✅ {ticker}: Return {result['total_return']:+.1f}%, Sharpe {result['sharpe_ratio']:.2f}, Win Rate {result['win_rate']:.1f}%")
+                print(f"  [{i}/{len(test_tickers)}] [EMOJI] {ticker}: Return {result['total_return']:+.1f}%, Sharpe {result['sharpe_ratio']:.2f}, Win Rate {result['win_rate']:.1f}%")
                 results.append({
                     'ticker': ticker,
                     'risk_category': risk_category,
                     **result
                 })
             else:
-                print(f"  [{i}/{len(test_tickers)}] ❌ {ticker}: {result['reason']}")
+                print(f"  [{i}/{len(test_tickers)}] [EMOJI] {ticker}: {result['reason']}")
         
         except Exception as e:
-            print(f"  [{i}/{len(test_tickers)}] ❌ {ticker}: Error - {str(e)}")
+            print(f"  [{i}/{len(test_tickers)}] [EMOJI] {ticker}: Error - {str(e)}")
     
     # Save results
     if results:
@@ -464,7 +464,7 @@ def run_backtest_on_universe(tickers: List[str] = None, sample_size: int = None)
         results_df.to_parquet(output_path, compression='snappy', index=False)
         
         print(f"\n{'='*80}")
-        print(f"✅ BACKTEST COMPLETE")
+        print(f"[EMOJI] BACKTEST COMPLETE")
         print(f"{'='*80}")
         print(f"Tested: {len(results)} ETFs")
         print(f"Avg Return: {results_df['total_return'].mean():+.2f}%")
@@ -475,7 +475,7 @@ def run_backtest_on_universe(tickers: List[str] = None, sample_size: int = None)
         
         return results_df
     else:
-        print("\n❌ No successful backtests")
+        print("\n[EMOJI] No successful backtests")
         return pd.DataFrame()
 
 

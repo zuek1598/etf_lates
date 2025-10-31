@@ -52,7 +52,7 @@ class ETFDataManager:
         
         # Validate data directory exists
         if not self.data_dir.exists():
-            print(f"⚠️  Data directory not found: {self.data_dir.absolute()}")
+            print(f"[EMOJI]  Data directory not found: {self.data_dir.absolute()}")
             print(f"   Creating directory...")
             self.data_dir.mkdir(parents=True, exist_ok=True)
     
@@ -67,14 +67,14 @@ class ETFDataManager:
             from data_manager.etf_database import ETFDatabase
             original_db = ETFDatabase()
             self.etf_data = original_db.etf_data.copy()
-            print(f"✓ Loaded metadata for {len(self.etf_data)} ETFs from etf_database.py")
+            print(f"[EMOJI] Loaded metadata for {len(self.etf_data)} ETFs from etf_database.py")
         except ImportError as e:
             # If old file not available, initialize empty (will load from Parquet)
-            print(f"⚠️  etf_database.py not found: {e}")
-            print("⚠️  Will attempt to load metadata from Parquet")
+            print(f"[EMOJI]  etf_database.py not found: {e}")
+            print("[EMOJI]  Will attempt to load metadata from Parquet")
             self.etf_data = {}
         except Exception as e:
-            print(f"⚠️  Error loading ETF database: {e}")
+            print(f"[EMOJI]  Error loading ETF database: {e}")
             self.etf_data = {}
     
     def get_etf_info(self, ticker: str) -> Optional[Dict]:
@@ -103,11 +103,11 @@ class ETFDataManager:
         universe = self.load_universe()
         if not universe.empty and 'ticker' in universe.columns:
             tickers = universe['ticker'].tolist()
-            print(f"✓ Loaded {len(tickers)} tickers from universe parquet")
+            print(f"[EMOJI] Loaded {len(tickers)} tickers from universe parquet")
             return tickers
         
         # Last resort: empty list
-        print("⚠️  No ETF tickers found")
+        print("[EMOJI]  No ETF tickers found")
         return []
     
     def get_etfs_by_region(self, region: str) -> List[str]:
@@ -144,12 +144,12 @@ class ETFDataManager:
         file_path = self.data_dir / 'etf_universe.parquet'
         
         if not file_path.exists():
-            print(f"⚠️  Universe file not found: {file_path}")
+            print(f"[EMOJI]  Universe file not found: {file_path}")
             print(f"   Please run analysis first: python run_analysis.py")
             return pd.DataFrame()
         
         df = pd.read_parquet(file_path)
-        print(f"✓ Loaded {len(df)} ETFs from {file_path.name}")
+        print(f"[EMOJI] Loaded {len(df)} ETFs from {file_path.name}")
         return df
     
     @lru_cache(maxsize=3)
@@ -174,7 +174,7 @@ class ETFDataManager:
         file_path = self.data_dir / f'rankings_{risk_category}.parquet'
         
         if not file_path.exists():
-            print(f"⚠️  No rankings file for {risk_category}")
+            print(f"[EMOJI]  No rankings file for {risk_category}")
             return pd.DataFrame()
         
         return pd.read_parquet(file_path)
@@ -356,16 +356,16 @@ class ETFDataManager:
         fund_file = self.data_dir / 'fundamental_data.json'
         
         if not fund_file.exists():
-            print(f"⚠️  Fundamental data file not found: {fund_file}")
+            print(f"[EMOJI]  Fundamental data file not found: {fund_file}")
             return {}
         
         try:
             with open(fund_file, 'r') as f:
                 data = json.load(f)
-            print(f"✓ Loaded fundamental data for {len(data)} ETFs")
+            print(f"[EMOJI] Loaded fundamental data for {len(data)} ETFs")
             return data
         except Exception as e:
-            print(f"⚠️  Error loading fundamental data: {e}")
+            print(f"[EMOJI]  Error loading fundamental data: {e}")
             return {}
     
     def get_fundamental_info(self, ticker: str) -> Optional[Dict]:
@@ -386,7 +386,7 @@ class ETFDataManager:
         with open(fund_file, 'w') as f:
             json.dump(data, f, indent=2)
         
-        print(f"✓ Saved fundamental data for {len(data)} ETFs to {fund_file.name}")
+        print(f"[EMOJI] Saved fundamental data for {len(data)} ETFs to {fund_file.name}")
         
         # Clear cache
         self.load_fundamental_data.cache_clear()
@@ -422,7 +422,7 @@ class ETFDataManager:
         with open(val_file, 'w') as f:
             json.dump(results, f, indent=2)
         
-        print(f"✓ Saved validation results to {val_file.name}")
+        print(f"[EMOJI] Saved validation results to {val_file.name}")
         
         # Clear cache
         self.load_validation_results.cache_clear()
@@ -449,7 +449,7 @@ class ETFDataManager:
         try:
             return pd.read_parquet(hist_file)
         except Exception as e:
-            print(f"⚠️  Error loading {ticker}: {e}")
+            print(f"[EMOJI]  Error loading {ticker}: {e}")
             return None
     
     def save_historical_prices(self, ticker: str, data: pd.DataFrame):
@@ -471,7 +471,7 @@ class ETFDataManager:
         self.load_metadata.cache_clear()
         self.load_fundamental_data.cache_clear()
         self.load_validation_results.cache_clear()
-        print("✓ Cache cleared")
+        print("[EMOJI] Cache cleared")
     
     # ============================================================
     # CONVENIENCE METHODS
@@ -606,16 +606,16 @@ if __name__ == "__main__":
         universe = manager.load_universe()
         load_time = time.time() - start
         if not universe.empty:
-            print(f"   ✓ Loaded {len(universe)} ETFs in {load_time*1000:.1f}ms")
+            print(f"   [EMOJI] Loaded {len(universe)} ETFs in {load_time*1000:.1f}ms")
             
             # Test cached loading
             start = time.time()
             universe = manager.load_universe()
             cached_time = time.time() - start
             speedup = load_time/cached_time if cached_time > 0 else float('inf')
-            print(f"   ✓ Cached load: {cached_time*1000:.1f}ms ({speedup:.0f}x faster)")
+            print(f"   [EMOJI] Cached load: {cached_time*1000:.1f}ms ({speedup:.0f}x faster)")
         else:
-            print(f"   ⚠️  No universe data found (run analysis first)")
+            print(f"   [EMOJI]  No universe data found (run analysis first)")
         
         # Test rankings
         print("\n3. Risk Rankings:")
@@ -638,13 +638,13 @@ if __name__ == "__main__":
         print(f"   Top ETF: {stats['top_etf']} ({stats['top_score']:.1f})")
         
         print("\n" + "=" * 60)
-        print("✅ All tests passed!")
+        print("[EMOJI] All tests passed!")
         
     except FileNotFoundError as e:
-        print(f"\n❌ Error: {e}")
+        print(f"\n[EMOJI] Error: {e}")
         print("\nPlease run analysis first:")
         print("   python run_analysis.py")
     except Exception as e:
-        print(f"\n❌ Unexpected error: {e}")
+        print(f"\n[EMOJI] Unexpected error: {e}")
         import traceback
         traceback.print_exc()

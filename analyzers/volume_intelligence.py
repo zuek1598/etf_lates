@@ -291,5 +291,5 @@ if __name__ == "__main__":
     result_spike = vi.analyze_volume(prices, volume_spike)
     print(f"  Spike Score: {result_spike['spike_score']:.1f}/100 (should be higher)")
     
-    print("\n✅ Volume Intelligence implementation complete!")
+    print("\n[EMOJI] Volume Intelligence implementation complete!")
 

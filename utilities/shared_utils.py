@@ -64,13 +64,13 @@ def transform_to_returns(prices: pd.Series) -> pd.Series:
 def calculate_quality_flag(mae_score: float, hit_rate: float, confidence: float) -> str:
     """Evaluate forecast quality and return appropriate flag"""
     if mae_score < 0.03 and hit_rate > 0.65 and confidence > 0.7:
-        return '✅'  # EXCELLENT
+        return '[EMOJI]'  # EXCELLENT
     elif mae_score < 0.06 and hit_rate > 0.55 and confidence > 0.5:
         return '~'   # FAIR
     elif mae_score > 0.15 or hit_rate < 0.45:
-        return '🔴'  # POOR
+        return '[EMOJI]'  # POOR
     else:
-        return '⚠️'  # WARNING
+        return '[EMOJI]'  # WARNING
 
 
 def get_quality_tier(years_available: float) -> Tuple[str, float]:

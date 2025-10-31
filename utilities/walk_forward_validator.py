@@ -118,7 +118,7 @@ def save_validation_results(results: Dict, output_path: str = 'data/validation_r
     with open(output, 'w') as f:
         json.dump(results, f, indent=2)
     
-    print(f"\n✓ Saved validation results to {output}")
+    print(f"\n[EMOJI] Saved validation results to {output}")
 
 
 def main():
@@ -142,9 +142,9 @@ def main():
         results[ticker] = result
         
         if result.get('error'):
-            print(f"  ✗ {ticker}: {result['error']}")
+            print(f"  [EMOJI] {ticker}: {result['error']}")
         else:
-            print(f"  ✓ {ticker}: MAE={result['avg_mae']:.2f}%, Hit Rate={result['hit_rate']:.1%}, Windows={result['num_windows']}")
+            print(f"  [EMOJI] {ticker}: MAE={result['avg_mae']:.2f}%, Hit Rate={result['hit_rate']:.1%}, Windows={result['num_windows']}")
     
     # Save results
     save_validation_results(results)

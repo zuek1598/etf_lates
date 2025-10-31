@@ -1,0 +1,121 @@
+{
+  "timestamp": 1761878240.6857617,
+  "test_results": {
+    "11": {
+      "classification_time": 9.54293704032898,
+      "analysis_time": 57.686949014663696,
+      "total_time": 67.22988605499268,
+      "time_per_etf": 6.111807823181152,
+      "low_risk": 1,
+      "medium_risk": 8,
+      "high_risk": 2,
+      "failed": 0,
+      "success_rate": 100.0,
+      "speed_etfs_per_sec": 0.16361771000180225,
+      "group_results": {
+        "LOW": {
+          "count": 1,
+          "time": 12.74053168296814,
+          "per_etf": 12.74053168296814
+        },
+        "MEDIUM": {
+          "count": 8,
+          "time": 31.08228826522827,
+          "per_etf": 3.885286033153534
+        },
+        "HIGH": {
+          "count": 2,
+          "time": 13.862685441970825,
+          "per_etf": 6.931342720985413
+        }
+      }
+    },
+    "50": {
+      "classification_time": 48.49116659164429,
+      "analysis_time": 164.28163695335388,
+      "total_time": 212.77280354499817,
+      "time_per_etf": 4.255456070899964,
+      "low_risk": 3,
+      "medium_risk": 29,
+      "high_risk": 18,
+      "failed": 0,
+      "success_rate": 100.0,
+      "speed_etfs_per_sec": 0.234992438727846,
+      "group_results": {
+        "LOW": {
+          "count": 3,
+          "time": 17.918503999710083,
+          "per_etf": 5.972834666570027
+        },
+        "MEDIUM": {
+          "count": 29,
+          "time": 90.10817694664001,
+          "per_etf": 3.10717851540138
+        },
+        "HIGH": {
+          "count": 18,
+          "time": 56.254956007003784,
+          "per_etf": 3.1252753337224326
+        }
+      }
+    },
+    "100": {
+      "classification_time": 40.18533897399902,
+      "analysis_time": 301.534170627594,
+      "total_time": 341.719509601593,
+      "time_per_etf": 3.4171950960159303,
+      "low_risk": 8,
+      "medium_risk": 52,
+      "high_risk": 40,
+      "failed": 0,
+      "success_rate": 100.0,
+      "speed_etfs_per_sec": 0.2926376668297016,
+      "group_results": {
+        "LOW": {
+          "count": 8,
+          "time": 33.23435187339783,
+          "per_etf": 4.154293984174728
+        },
+        "MEDIUM": {
+          "count": 52,
+          "time": 152.76428365707397,
+          "per_etf": 2.937774685712961
+        },
+        "HIGH": {
+          "count": 40,
+          "time": 115.53453350067139,
+          "per_etf": 2.8883633375167848
+        }
+      }
+    },
+    "385": {
+      "classification_time": 150.7625584602356,
+      "analysis_time": 1296.6256611347198,
+      "total_time": 1447.3882195949554,
+      "time_per_etf": 3.8392260466709693,
+      "low_risk": 68,
+      "medium_risk": 193,
+      "high_risk": 116,
+      "failed": 8,
+      "success_rate": 97.92207792207792,
+      "speed_etfs_per_sec": 0.26599636143766625,
+      "group_results": {
+        "LOW": {
+          "count": 68,
+          "time": 223.0940396785736,
+          "per_etf": 3.2807947011554943
+        },
+        "MEDIUM": {
+          "count": 193,
+          "time": 692.5325465202332,
+          "per_etf": 3.588251536374265
+        },
+        "HIGH": {
+          "count": 116,
+          "time": 380.99654960632324,
+          "per_etf": 3.2844530138476142
+        }
+      }
+    }
+  }
+}

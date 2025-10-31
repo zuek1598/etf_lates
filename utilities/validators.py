@@ -198,8 +198,8 @@ def validate_risk_component_output(output: Dict) -> bool:
         raise ValueError(f"risk_category must be LOW/MEDIUM/HIGH, got {output['risk_category']}")
     
     # Validate quality_flag
-    if output['quality_flag'] not in ['✅', '~', '⚠️', '🔴']:
-        raise ValueError(f"quality_flag must be ✅/~/⚠️/🔴, got {output['quality_flag']}")
+    if output['quality_flag'] not in ['[EMOJI]', '~', '[EMOJI]', '[EMOJI]']:
+        raise ValueError(f"quality_flag must be [EMOJI]/~/[EMOJI]/[EMOJI], got {output['quality_flag']}")
     
     return True
 
@@ -217,7 +217,7 @@ def validate_risk_category(category: str) -> bool:
 
 def validate_quality_flag(flag: str) -> bool:
     """Validate quality flag"""
-    if flag not in ['✅', '~', '⚠️', '🔴']:
+    if flag not in ['[EMOJI]', '~', '[EMOJI]', '[EMOJI]']:
         raise ValueError(f"Invalid quality flag: {flag}")
     return True
 

@@ -24,7 +24,7 @@ def create_growth_opportunities_page(universe: pd.DataFrame) -> html.Div:
     
     if len(growth_candidates) == 0:
         return html.Div([
-            html.H2("🚀 Growth Opportunities", style={'color': '#2c3e50', 'marginBottom': '20px'}),
+            html.H2("[EMOJI] Growth Opportunities", style={'color': '#2c3e50', 'marginBottom': '20px'}),
             html.P("No opportunities found (score > 35, MEDIUM/HIGH risk)", 
                    style={'color': '#7f8c8d', 'fontSize': '16px'})
         ])
@@ -44,14 +44,14 @@ def create_growth_opportunities_page(universe: pd.DataFrame) -> html.Div:
     return html.Div([
         # Header
         html.Div([
-            html.H2("🚀 Top Growth Opportunities", style={'color': '#2c3e50', 'display': 'inline-block', 'marginRight': '20px'}),
+            html.H2("[EMOJI] Top Growth Opportunities", style={'color': '#2c3e50', 'display': 'inline-block', 'marginRight': '20px'}),
             html.Span(f"{len(growth_candidates)} opportunities found", 
                      style={'color': '#7f8c8d', 'fontSize': '16px', 'verticalAlign': 'middle'})
         ], style={'marginBottom': '20px'}),
         
         # Strategy Info Banner
         html.Div([
-            html.H4("📊 Growth Strategy Focus", style={'color': '#2c3e50', 'marginBottom': '10px'}),
+            html.H4("[EMOJI] Growth Strategy Focus", style={'color': '#2c3e50', 'marginBottom': '10px'}),
             html.P([
                 "Targeting ",
                 html.Strong("MEDIUM/HIGH risk ETFs"),
@@ -106,7 +106,7 @@ def create_growth_opportunities_page(universe: pd.DataFrame) -> html.Div:
         
         # Top 10 Table
         html.Div([
-            html.H3("🏆 Top 10 Opportunities", style={'color': '#2c3e50', 'marginBottom': '15px'}),
+            html.H3("[EMOJI] Top 10 Opportunities", style={'color': '#2c3e50', 'marginBottom': '15px'}),
             html.Table([
                 # Header
                 html.Thead(html.Tr([
@@ -148,7 +148,7 @@ def create_growth_opportunities_page(universe: pd.DataFrame) -> html.Div:
                             style={'padding': '10px', 'textAlign': 'center'}
                         ),
                         html.Td(
-                            html.Span("✅ BUY" if row['kalman_trend'] == 1 else "⏸️ WAIT",
+                            html.Span("[EMOJI] BUY" if row['kalman_trend'] == 1 else "⏸[EMOJI] WAIT",
                                      style={'padding': '4px 8px', 'borderRadius': '4px', 'fontSize': '11px',
                                            'backgroundColor': '#27ae60' if row['kalman_trend']==1 else '#95a5a6',
                                            'color': 'white', 'fontWeight': 'bold'}),
@@ -163,7 +163,7 @@ def create_growth_opportunities_page(universe: pd.DataFrame) -> html.Div:
         
         # Scatter Plot: Score vs Momentum
         html.Div([
-            html.H3("📊 Score vs Momentum Strength", style={'color': '#2c3e50', 'marginBottom': '15px'}),
+            html.H3("[EMOJI] Score vs Momentum Strength", style={'color': '#2c3e50', 'marginBottom': '15px'}),
             dcc.Graph(
                 figure=create_score_momentum_scatter(growth_candidates),
                 config={'displayModeBar': False}
@@ -172,7 +172,7 @@ def create_growth_opportunities_page(universe: pd.DataFrame) -> html.Div:
         
         # Position Sizing Guide
         html.Div([
-            html.H3("💰 Position Sizing Guide", style={'color': '#2c3e50', 'marginBottom': '15px'}),
+            html.H3("[EMOJI] Position Sizing Guide", style={'color': '#2c3e50', 'marginBottom': '15px'}),
             html.Table([
                 html.Thead(html.Tr([
                     html.Th("Risk Category", style={'padding': '12px', 'backgroundColor': '#34495e', 'color': 'white'}),
@@ -190,7 +190,7 @@ def create_growth_opportunities_page(universe: pd.DataFrame) -> html.Div:
                         html.Td("5% (40%)", style={'padding': '10px', 'color': '#e67e22'})
                     ]),
                     html.Tr([
-                        html.Td("🔴 HIGH", style={'padding': '10px', 'fontWeight': 'bold'}),
+                        html.Td("[EMOJI] HIGH", style={'padding': '10px', 'fontWeight': 'bold'}),
                         html.Td("8%", style={'padding': '10px'}),
                         html.Td("8% (full)", style={'padding': '10px', 'color': '#27ae60', 'fontWeight': 'bold'}),
                         html.Td("7% (85%)", style={'padding': '10px'}),
@@ -205,11 +205,11 @@ def create_growth_opportunities_page(universe: pd.DataFrame) -> html.Div:
 def get_volume_signal_icon(signal: str) -> str:
     """Get icon for volume signal"""
     if signal == 'accumulation':
-        return "📈 ACC"
+        return "[EMOJI] ACC"
     elif signal == 'distribution':
-        return "📉 DIST"
+        return "[EMOJI] DIST"
     else:
-        return "➖ NEUT"
+        return "[EMOJI] NEUT"
 
 
 def create_score_momentum_scatter(data: pd.DataFrame) -> go.Figure:
@@ -247,7 +247,7 @@ def create_backtest_results_page(results_file: str = 'data/backtest_results.parq
     
     if not Path(results_file).exists():
         return html.Div([
-            html.H2("📊 Backtest Results", style={'color': '#2c3e50', 'marginBottom': '20px'}),
+            html.H2("[EMOJI] Backtest Results", style={'color': '#2c3e50', 'marginBottom': '20px'}),
             html.P("No backtest results available. Run: python3 run_backtest.py", 
                    style={'color': '#7f8c8d', 'fontSize': '16px'})
         ])
@@ -256,7 +256,7 @@ def create_backtest_results_page(results_file: str = 'data/backtest_results.parq
         results = pd.read_parquet(results_file)
     except:
         return html.Div([
-            html.H2("📊 Backtest Results", style={'color': '#2c3e50', 'marginBottom': '20px'}),
+            html.H2("[EMOJI] Backtest Results", style={'color': '#2c3e50', 'marginBottom': '20px'}),
             html.P("Error loading backtest results", 
                    style={'color': '#e74c3c', 'fontSize': '16px'})
         ])
@@ -272,7 +272,7 @@ def create_backtest_results_page(results_file: str = 'data/backtest_results.parq
     total = len(results)
     
     return html.Div([
-        html.H2("📊 Backtest Results", style={'color': '#2c3e50', 'marginBottom': '20px'}),
+        html.H2("[EMOJI] Backtest Results", style={'color': '#2c3e50', 'marginBottom': '20px'}),
         
         # Summary Cards
         html.Div([

@@ -47,7 +47,7 @@ def print_analysis_summary(results, etf_db):
     before saving to Parquet files
     """
     print("\n" + "="*80)
-    print(" " * 25 + "📊 ANALYSIS SUMMARY REPORT")
+    print(" " * 25 + "[EMOJI] ANALYSIS SUMMARY REPORT")
     print("="*80)
     
     analysis_results = results.get('analysis_results', {})
@@ -103,7 +103,7 @@ def print_analysis_summary(results, etf_db):
     universe_df = pd.DataFrame(universe_data)
     
     # Overall Statistics
-    print(f"\n📈 OVERALL STATISTICS")
+    print(f"\n[EMOJI] OVERALL STATISTICS")
     print("-" * 80)
     print(f"Total ETFs Analyzed:         {len(universe_df)}")
     print(f"Average Composite Score:     {universe_df['composite_score'].mean():.2f}")
@@ -114,18 +114,18 @@ def print_analysis_summary(results, etf_db):
     print(f"Average ML Forecast:         {universe_df['ml_forecast'].mean():+.2f}%")
     
     # Risk Distribution
-    print(f"\n🎯 RISK CATEGORY DISTRIBUTION")
+    print(f"\n[EMOJI] RISK CATEGORY DISTRIBUTION")
     print("-" * 80)
     risk_counts = universe_df['risk_category'].value_counts()
     for risk in ['LOW', 'MEDIUM', 'HIGH']:
         if risk in risk_counts.index:
             count = risk_counts[risk]
             pct = (count / len(universe_df)) * 100
-            emoji = "🟢" if risk == "LOW" else "🟠" if risk == "MEDIUM" else "🔴"
+            emoji = "🟢" if risk == "LOW" else "🟠" if risk == "MEDIUM" else "[EMOJI]"
             print(f"{emoji} {risk:10} Risk: {count:4} ETFs ({pct:5.1f}%)")
     
     # ML Forecast Summary
-    print(f"\n🔮 ML FORECAST SUMMARY (60-Day Outlook)")
+    print(f"\n[EMOJI] ML FORECAST SUMMARY (60-Day Outlook)")
     print("-" * 80)
     positive_forecasts = len(universe_df[universe_df['ml_forecast'] > 0])
     negative_forecasts = len(universe_df[universe_df['ml_forecast'] < 0])
@@ -140,7 +140,7 @@ def print_analysis_summary(results, etf_db):
           f"({universe_df.nsmallest(1, 'ml_forecast')['ticker'].iloc[0]})")
     
     # Kalman Hull Trend Summary
-    print(f"\n📊 KALMAN HULL TREND SUMMARY")
+    print(f"\n[EMOJI] KALMAN HULL TREND SUMMARY")
     print("-" * 80)
     uptrend = len(universe_df[universe_df['kalman_trend'] == 1])
     downtrend = len(universe_df[universe_df['kalman_trend'] == -1])
@@ -153,7 +153,7 @@ def print_analysis_summary(results, etf_db):
     print(f"Avg Efficiency Ratio:  {universe_df['kalman_efficiency_ratio'].mean():.3f}")
     
     # Volume Intelligence Summary
-    print(f"\n📈 VOLUME INTELLIGENCE SUMMARY")
+    print(f"\n[EMOJI] VOLUME INTELLIGENCE SUMMARY")
     print("-" * 80)
     high_volume_spike = len(universe_df[universe_df['volume_spike_score'] > 70])
     positive_correlation = len(universe_df[universe_df['volume_correlation'] > 0.5])
@@ -163,7 +163,7 @@ def print_analysis_summary(results, etf_db):
     print(f"Avg Volume Confidence:       {universe_df['volume_confidence'].mean():.3f}")
     
     # Detailed analysis by risk category
-    for risk_cat, emoji in [("LOW", "🟢"), ("MEDIUM", "🟠"), ("HIGH", "🔴")]:
+    for risk_cat, emoji in [("LOW", "🟢"), ("MEDIUM", "🟠"), ("HIGH", "[EMOJI]")]:
         risk_data = universe_df[universe_df['risk_category'] == risk_cat]
         
         if len(risk_data) == 0:
@@ -218,14 +218,14 @@ def print_analysis_summary(results, etf_db):
     
     # Overall Top Performers
     print(f"\n" + "="*80)
-    print(f"🏆 TOP 15 ETFS (ALL CATEGORIES)")
+    print(f"[EMOJI] TOP 15 ETFS (ALL CATEGORIES)")
     print("="*80)
     print(f"{'Rank':<6}{'Ticker':<12}{'Name':<30}{'Risk':<10}{'Score':<8}{'Trend':<8}{'Forecast':<10}{'YTD %':<8}")
     print("-" * 80)
     
     top_15 = universe_df.nlargest(15, 'composite_score')
     for idx, row in enumerate(top_15.itertuples(), 1):
-        risk_emoji = "🟢" if row.risk_category == "LOW" else "🟠" if row.risk_category == "MEDIUM" else "🔴"
+        risk_emoji = "🟢" if row.risk_category == "LOW" else "🟠" if row.risk_category == "MEDIUM" else "[EMOJI]"
         name_short = row.name[:27] + "..." if len(row.name) > 30 else row.name
         trend_str = '↑' if row.kalman_trend == 1 else '↓' if row.kalman_trend == -1 else '→'
         print(f"{idx:<6}{row.ticker:<12}{name_short:<30}{risk_emoji} {row.risk_category:<7}"
@@ -234,7 +234,7 @@ def print_analysis_summary(results, etf_db):
     
     # Key Insights
     print(f"\n" + "="*80)
-    print(f"💡 KEY INSIGHTS")
+    print(f"[EMOJI] KEY INSIGHTS")
     print("="*80)
     
     best_score = universe_df.nlargest(1, 'composite_score').iloc[0]
@@ -351,7 +351,7 @@ def save_analysis_to_parquet(results, etf_db, data_dir='data'):
     universe_file = data_path / 'etf_universe.parquet'
     universe_df.to_parquet(universe_file, compression='snappy', index=False)
     saved_files['universe'] = str(universe_file)
-    print(f"   ✓ Saved: {universe_file} ({len(universe_df)} ETFs, {universe_file.stat().st_size / 1024:.1f} KB)")
+    print(f"   [EMOJI] Saved: {universe_file} ({len(universe_df)} ETFs, {universe_file.stat().st_size / 1024:.1f} KB)")
     
     # 2. Create Rankings DataFrames (by risk category)
     print("\n2. Creating risk category rankings...")
@@ -364,7 +364,7 @@ def save_analysis_to_parquet(results, etf_db, data_dir='data'):
         category_etfs = rankings.get(risk_type, [])
         
         if not category_etfs:
-            print(f"   ⚠ No {label} ETFs found")
+            print(f"   [EMOJI] No {label} ETFs found")
             continue
         
         ranking_data = []
@@ -416,7 +416,7 @@ def save_analysis_to_parquet(results, etf_db, data_dir='data'):
         ranking_file = data_path / f'rankings_{risk_type_lower}.parquet'
         ranking_df.to_parquet(ranking_file, compression='snappy', index=False)
         saved_files[risk_type_lower] = str(ranking_file)
-        print(f"   ✓ Saved: {ranking_file} ({len(ranking_df)} ETFs, {ranking_file.stat().st_size / 1024:.1f} KB)")
+        print(f"   [EMOJI] Saved: {ranking_file} ({len(ranking_df)} ETFs, {ranking_file.stat().st_size / 1024:.1f} KB)")
     
     # 3. Create metadata file
     print("\n3. Creating metadata...")
@@ -442,12 +442,12 @@ def save_analysis_to_parquet(results, etf_db, data_dir='data'):
     metadata_file = data_path / 'analysis_metadata.parquet'
     metadata_df.to_parquet(metadata_file, compression='snappy', index=False)
     saved_files['metadata'] = str(metadata_file)
-    print(f"   ✓ Saved: {metadata_file} ({metadata_file.stat().st_size / 1024:.1f} KB)")
+    print(f"   [EMOJI] Saved: {metadata_file} ({metadata_file.stat().st_size / 1024:.1f} KB)")
     
     # Summary
     total_size = sum(Path(f).stat().st_size for f in saved_files.values())
     print("\n" + "="*60)
-    print(f"✅ SUCCESSFULLY SAVED {len(saved_files)} FILES")
+    print(f"[EMOJI] SUCCESSFULLY SAVED {len(saved_files)} FILES")
     print(f"   Total size: {total_size / 1024:.1f} KB")
     print(f"   Location: {data_path.absolute()}")
     print("="*60)
@@ -498,7 +498,7 @@ def run_full_etf_analysis(save_results=True):
         results['saved_files'] = saved_files
     
     print(f"\n{'='*60}")
-    print(f"✅ ANALYSIS COMPLETE")
+    print(f"[EMOJI] ANALYSIS COMPLETE")
     print(f"End Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"Total ETFs Analyzed: {len(results.get('analysis_results', {}))}")
     print(f"{'='*60}\n")
@@ -517,7 +517,7 @@ def main():
     
     # Ask user if they want to run backtesting
     print("\n" + "="*80)
-    print("🧪 BACKTESTING VALIDATION")
+    print("[EMOJI] BACKTESTING VALIDATION")
     print("="*80)
     print("\nWould you like to run backtesting to validate the strategy?")
     print("\nOptions:")
@@ -546,14 +546,14 @@ def main():
             ]
             
             run_backtest_on_universe(tickers=sample_tickers)
-            print("\n✅ Quick backtest complete! View results in dashboard (Backtest Results page)")
+            print("\n[EMOJI] Quick backtest complete! View results in dashboard (Backtest Results page)")
         
         elif choice == '2':
             # Full universe backtest
             print("\n" + "="*80)
             print("RUNNING FULL UNIVERSE BACKTEST")
             print("="*80)
-            print("\n⚠️  This will take 30-60 minutes for all ETFs with historical data")
+            print("\n[EMOJI]  This will take 30-60 minutes for all ETFs with historical data")
             confirm = input("Continue? (y/n): ").strip().lower()
             
             if confirm == 'y':
@@ -562,20 +562,20 @@ def main():
                 
                 # Backtest all available ETFs
                 run_backtest_on_universe()
-                print("\n✅ Full universe backtest complete! View results in dashboard")
+                print("\n[EMOJI] Full universe backtest complete! View results in dashboard")
             else:
-                print("\n⏭️  Skipping backtest")
+                print("\n⏭[EMOJI]  Skipping backtest")
         else:
-            print("\n⏭️  Skipping backtest")
+            print("\n⏭[EMOJI]  Skipping backtest")
     
     except KeyboardInterrupt:
-        print("\n\n⏭️  Skipping backtest")
+        print("\n\n⏭[EMOJI]  Skipping backtest")
     except Exception as e:
-        print(f"\n⚠️  Backtest skipped due to error: {e}")
+        print(f"\n[EMOJI]  Backtest skipped due to error: {e}")
 
     
     print("\n" + "="*80)
-    print("🎉 ALL DONE!")
+    print("[EMOJI] ALL DONE!")
     print("="*80)
     print("\nNext steps:")
     print("  1. View dashboard: python3 run_dashboard.py")

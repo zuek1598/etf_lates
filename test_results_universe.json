@@ -1,0 +1,18 @@
+{
+  "num_etfs": 11,
+  "num_runs": 1,
+  "time_sequential": 13.105725288391113,
+  "time_parallel": 10.42190933227539,
+  "speedup": 1.257516724675801,
+  "results_match": true,
+  "sequential_summary": {
+    "low_risk": 0,
+    "medium_risk": 3,
+    "high_risk": 8
+  },
+  "parallel_summary": {
+    "low_risk": 0,
+    "medium_risk": 3,
+    "high_risk": 8
+  }
+}

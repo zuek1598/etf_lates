@@ -21,7 +21,7 @@ RISK_COMPONENT_SCHEMA = {
     'information_ratio': {'type': float, 'range': (-5.0, 5.0), 'required': True, 'description': 'Information ratio vs benchmark'},
     'risk_score': {'type': float, 'range': (0.0, 1.0), 'required': True, 'description': 'Weighted risk score (0=best, 1=worst)'},
     'risk_category': {'type': str, 'values': ['LOW', 'MEDIUM', 'HIGH'], 'required': True, 'description': 'Risk category'},
-    'quality_flag': {'type': str, 'values': ['✅', '~', '⚠️', '🔴'], 'required': True, 'description': 'Quality flag'},
+    'quality_flag': {'type': str, 'values': ['[EMOJI]', '~', '[EMOJI]', '[EMOJI]'], 'required': True, 'description': 'Quality flag'},
     't_distribution_params': {'type': dict, 'required': False, 'description': 'T-distribution fit parameters'},
     'volatility': {'type': float, 'range': (0.0, 1.0), 'required': False, 'description': 'Annualized volatility'},
     
@@ -186,7 +186,7 @@ def validate_output(data: Dict, schema: Dict, soft: bool = True) -> Tuple[bool, 
         if not is_valid:
             error_msg = f"{field_name}: {error_msg}"
             if soft:
-                print(f"⚠️  Validation warning: {error_msg}")
+                print(f"[EMOJI]  Validation warning: {error_msg}")
             else:
                 errors.append(error_msg)
     
@@ -197,7 +197,7 @@ def validate_risk_component(data: Dict) -> bool:
     """Validate Risk Component output"""
     is_valid, errors = validate_output(data, RISK_COMPONENT_SCHEMA, soft=False)
     if not is_valid:
-        print(f"❌ Risk Component validation failed: {errors}")
+        print(f"[EMOJI] Risk Component validation failed: {errors}")
     return is_valid
 
 
@@ -205,7 +205,7 @@ def validate_kalman_hull(data: Dict) -> bool:
     """Validate Kalman Hull output"""
     is_valid, errors = validate_output(data, KALMAN_HULL_SCHEMA, soft=False)
     if not is_valid:
-        print(f"❌ Kalman Hull validation failed: {errors}")
+        print(f"[EMOJI] Kalman Hull validation failed: {errors}")
     return is_valid
 
 
@@ -213,7 +213,7 @@ def validate_volume_intelligence(data: Dict) -> bool:
     """Validate Volume Intelligence output"""
     is_valid, errors = validate_output(data, VOLUME_INTELLIGENCE_SCHEMA, soft=False)
     if not is_valid:
-        print(f"❌ Volume Intelligence validation failed: {errors}")
+        print(f"[EMOJI] Volume Intelligence validation failed: {errors}")
     return is_valid
 
 
@@ -221,12 +221,12 @@ def validate_ml_ensemble(data: Dict) -> bool:
     """Validate ML Ensemble output (CRITICAL: NO bias_correction field)"""
     # CRITICAL CHECK: Ensure NO bias correction field exists
     if 'bias_correction' in data or 'bias_corrected' in data:
-        print(f"❌ CRITICAL: Bias correction field must NOT exist (raw output required)")
+        print(f"[EMOJI] CRITICAL: Bias correction field must NOT exist (raw output required)")
         return False
     
     is_valid, errors = validate_output(data, ML_ENSEMBLE_SCHEMA, soft=False)
     if not is_valid:
-        print(f"❌ ML Ensemble validation failed: {errors}")
+        print(f"[EMOJI] ML Ensemble validation failed: {errors}")
     return is_valid
 
 
@@ -243,7 +243,7 @@ if __name__ == "__main__":
         'information_ratio': 0.8,
         'risk_score': 0.35,
         'risk_category': 'LOW',
-        'quality_flag': '✅'
+        'quality_flag': '[EMOJI]'
     }
     print("\n1. Risk Component:")
     print(f"   Valid: {validate_risk_component(risk_data)}")

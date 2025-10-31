@@ -51,7 +51,7 @@ def fetch_geo_data(lookback_days: int = 365) -> Dict[str, pd.Series]:
                 result[key] = data  # Single series case
         return result
     except Exception as e:
-        print(f"⚠️  Data fetch warning: {e}")
+        print(f"[EMOJI]  Data fetch warning: {e}")
         return {}
 
 # ============================================
@@ -351,18 +351,18 @@ def calculate_geopolitical_framework(data: Optional[Dict] = None) -> Dict:
     """
     # Fetch data if not provided
     if data is None:
-        print("📊 Fetching geopolitical data...")
+        print("[EMOJI] Fetching geopolitical data...")
         data = fetch_geo_data()
     
     if not data:
-        print("⚠️  Warning: No data available")
+        print("[EMOJI]  Warning: No data available")
         return {
             'risk_score': 50.0,
             'risk_level': 'UNKNOWN',
             'pillars': {}
         }
     
-    print("⚙️  Calculating geopolitical risk...")
+    print("[EMOJI]  Calculating geopolitical risk...")
     
     # Calculate all five pillars
     us_china_taiwan = calc_us_china_taiwan_index(data)
@@ -413,11 +413,11 @@ if __name__ == "__main__":
     result = calculate_geopolitical_framework()
     
     print("\n" + "="*60)
-    print("⚔️  GEOPOLITICAL RISK OVERLAY - RESULTS")
+    print("[EMOJI]  GEOPOLITICAL RISK OVERLAY - RESULTS")
     print("="*60)
-    print(f"\n🎯 RISK SCORE: {result['risk_score']:.2f}/100")
-    print(f"⚠️  RISK LEVEL: {result['risk_level']}")
-    print(f"\n📊 PILLAR BREAKDOWN:")
+    print(f"\n[EMOJI] RISK SCORE: {result['risk_score']:.2f}/100")
+    print(f"[EMOJI]  RISK LEVEL: {result['risk_level']}")
+    print(f"\n[EMOJI] PILLAR BREAKDOWN:")
     print(f"   • US-China-Taiwan:  {result['pillars']['us_china_taiwan']:>6.2f}/100 (weight: 30%)")
     print(f"   • Military Conflict:{result['pillars']['military_conflict']:>6.2f}/100 (weight: 25%)")
     print(f"   • Trade War:        {result['pillars']['trade_war']:>6.2f}/100 (weight: 20%)")

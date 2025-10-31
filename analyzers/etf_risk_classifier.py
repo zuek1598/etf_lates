@@ -11,6 +11,7 @@ from scipy import stats
 import time
 from typing import Dict, Tuple, List
 import warnings
+import threading
 warnings.filterwarnings('ignore')
 
 from utilities.shared_utils import extract_column
@@ -18,12 +19,17 @@ from utilities.shared_utils import extract_column
 class ETFRiskClassifier:
     """
     Advanced ETF risk classification using volatility and beta analysis
+    Thread-safe implementation for parallel processing
     """
-    
-    def __init__(self):
+
+    def __init__(self, enable_cache=True):
         from data_manager.data_manager import ETFDataManager
         self.etf_database = ETFDataManager()
-        
+        # Thread-safe locks for concurrent access
+        self._cache_lock = threading.Lock()
+        self._benchmark_lock = threading.Lock()  # Lock for benchmark data access
+        self.enable_cache = enable_cache  # Can be disabled for parallel mode
+
         self.benchmarks = {
             'ASX200': '^AXJO',
             'MSCI_World': 'URTH', 
@@ -63,11 +69,11 @@ class ETFRiskClassifier:
                 data = yf.download(ticker, period="max", progress=False)
                 if not data.empty:
                     self.benchmark_data[name] = data
-                    print(f"    ✓ {name}: {len(data)} days")
+                    print(f"    [EMOJI] {name}: {len(data)} days")
                 else:
-                    print(f"    ✗ {name}: No data")
+                    print(f"    [EMOJI] {name}: No data")
             except Exception as e:
-                print(f"    ✗ {name}: Error - {str(e)}")
+                print(f"    [EMOJI] {name}: Error - {str(e)}")
                 
         print(f"Successfully downloaded {len(self.benchmark_data)} benchmarks")
         return self.benchmark_data
@@ -75,36 +81,49 @@ class ETFRiskClassifier:
     def download_etf_data(self, ticker: str, period: str = "max") -> Tuple[pd.DataFrame, str, float]:
         """
         Download ETF data with quality assessment and retry logic
+        Thread-safe with optional caching (disabled in parallel mode for thread isolation)
+
+        NOTE: yfinance is NOT thread-safe! Downloads are serialized with a lock
+        to prevent data corruption when multiple threads request simultaneously.
+        Processing is still parallel, only downloads are serialized.
+
         Returns: (data, quality_tier, quality_score)
         """
         max_retries = 3
         retry_delay = 1  # Start with 1 second
-        
-        for attempt in range(max_retries):
-            try:
-                # Check cache first
-                cache_key = f"{ticker}_{period}"
+        cache_key = f"{ticker}_{period}"
+
+        # Check cache only if enabled (skipped in parallel mode for thread safety)
+        if self.enable_cache:
+            with self._cache_lock:
                 if cache_key in self.cache:
                     return self.cache[cache_key]
-                
-                data = yf.download(ticker, period=period, progress=False)
-                
+
+        for attempt in range(max_retries):
+            try:
+                # CRITICAL: yfinance concurrent downloads corrupt data!
+                # Must serialize with lock to prevent response mixing
+                # Use _yfinance_lock if available (parallel mode), else _cache_lock (sequential)
+                lock = getattr(self, '_yfinance_lock', None) or self._cache_lock
+                with lock:
+                    data = yf.download(ticker, period=period, progress=False)
+
                 if data is None or data.empty or len(data) < 30:  # Minimum 30 days
                     if attempt < max_retries - 1:
-                        print(f"  ⚠️  {ticker}: No data returned, retrying in {retry_delay}s... (attempt {attempt + 1}/{max_retries})")
+                        print(f"  [EMOJI]  {ticker}: No data returned, retrying in {retry_delay}s... (attempt {attempt + 1}/{max_retries})")
                         time.sleep(retry_delay)
                         retry_delay *= 2  # Exponential backoff
                         continue
                     else:
-                        print(f"  ❌ {ticker}: Insufficient data after {max_retries} attempts")
+                        print(f"  [EMOJI] {ticker}: Insufficient data after {max_retries} attempts")
                         return None, "insufficient", 0.0
-                
+
                 # Calculate data quality
                 years_available = len(data) / 252
                 # Handle multi-level columns from yfinance
                 close_col = extract_column(data, 'Close')
                 completeness = (1 - close_col.isna().sum() / len(data))
-                
+
                 # Determine quality tier
                 if years_available >= 3:
                     quality_tier = "tier_1"
@@ -114,24 +133,26 @@ class ETFRiskClassifier:
                     quality_tier = "tier_3"
                 else:
                     quality_tier = "tier_4"
-                
+
                 quality_score = completeness * min(years_available / 3, 1.0)
-                
-                # Cache the result
+
+                # Cache the result if enabled
                 result = (data, quality_tier, quality_score)
-                self.cache[cache_key] = result
-                
+                if self.enable_cache:
+                    with self._cache_lock:
+                        self.cache[cache_key] = result
+
                 return result
-                
+
             except Exception as e:
                 if attempt < max_retries - 1:
-                    print(f"  ⚠️  {ticker}: Error ({str(e)}), retrying in {retry_delay}s... (attempt {attempt + 1}/{max_retries})")
+                    print(f"  [EMOJI]  {ticker}: Error ({str(e)}), retrying in {retry_delay}s... (attempt {attempt + 1}/{max_retries})")
                     time.sleep(retry_delay)
                     retry_delay *= 2  # Exponential backoff
                 else:
-                    print(f"  ❌ {ticker}: Failed after {max_retries} attempts - {str(e)}")
+                    print(f"  [EMOJI] {ticker}: Failed after {max_retries} attempts - {str(e)}")
                     return None, "error", 0.0
-        
+
         return None, "error", 0.0
     
     def calculate_annual_volatility(self, data: pd.DataFrame, periods: int) -> float:
@@ -166,10 +187,10 @@ class ETFRiskClassifier:
             if len(returns) >= 90:  # At least 90 days
                 actual_periods = len(returns)
                 vol_actual = returns.std() * np.sqrt(252)
-                print(f"  ℹ️  {ticker}: Using {actual_periods}-day volatility (insufficient 1-year data)")
+                print(f"  [EMOJI][EMOJI]  {ticker}: Using {actual_periods}-day volatility (insufficient 1-year data)")
                 final_volatility = vol_actual
             else:
-                print(f"  ❌ {ticker}: Insufficient data for volatility calculation ({len(returns)} < 90 days)")
+                print(f"  [EMOJI] {ticker}: Insufficient data for volatility calculation ({len(returns)} < 90 days)")
                 return np.nan
         else:
             # Simple final volatility (consistent with 1-year beta)
@@ -247,28 +268,30 @@ class ETFRiskClassifier:
         """Find benchmark with highest correlation to ETF"""
         best_correlation = -1
         best_benchmark = None
-        
+
+        # No lock needed - in parallel mode, self.benchmark_data contains deep copies
+        # Each thread works with independent DataFrames, no concurrent modifications
         for benchmark_name, benchmark_data in self.benchmark_data.items():
             if benchmark_data.empty:
                 continue
-                
+
             close_col = extract_column(benchmark_data, 'Close')
             benchmark_returns = close_col.pct_change().dropna()
-            
+
             # Align dates
             common_dates = etf_returns.index.intersection(benchmark_returns.index)
             if len(common_dates) < 30:
                 continue
-                
+
             etf_aligned = etf_returns.loc[common_dates]
             bench_aligned = benchmark_returns.loc[common_dates]
-            
+
             correlation = etf_aligned.corr(bench_aligned)
-            
+
             if not np.isnan(correlation) and correlation > best_correlation:
                 best_correlation = correlation
                 best_benchmark = benchmark_name
-                
+
         return best_benchmark, best_correlation
     
     def calculate_volatility_beta(self, data: pd.DataFrame, ticker: str = "Unknown") -> Tuple[float, str]:
@@ -281,25 +304,27 @@ class ETFRiskClassifier:
         etf_returns = close_col.pct_change().dropna()
         
         if len(etf_returns) < 30:
-            print(f"  ⚠️  Beta calculation failed for {ticker}: Insufficient returns ({len(etf_returns)} < 30)")
+            print(f"  [EMOJI]  Beta calculation failed for {ticker}: Insufficient returns ({len(etf_returns)} < 30)")
             return np.nan, None
             
         # Find best correlated benchmark
         best_benchmark, correlation = self.identify_highest_correlation(etf_returns)
-        
+
         if best_benchmark is None:
-            print(f"  ⚠️  Beta calculation failed for {ticker}: No suitable benchmark found")
+            print(f"  [EMOJI]  Beta calculation failed for {ticker}: No suitable benchmark found")
             return np.nan, None
-            
-        benchmark_data = self.benchmark_data[best_benchmark]
-        close_col = extract_column(benchmark_data, 'Close')
-        benchmark_returns = close_col.pct_change().dropna()
+
+        # Thread-safe access to benchmark data
+        with self._benchmark_lock:
+            benchmark_data = self.benchmark_data[best_benchmark]
+            close_col = extract_column(benchmark_data, 'Close')
+            benchmark_returns = close_col.pct_change().dropna()
         
         # Calculate 1-year beta (most recent and relevant)
         periods_1yr = min(252, len(etf_returns))  # Use up to 1 year of data
         
         if periods_1yr < 30:  # Need at least 1 month of data (reduced from 60 to support newer ETFs)
-            print(f"  ⚠️  Beta calculation failed for {ticker}: Insufficient periods ({periods_1yr} < 30)")
+            print(f"  [EMOJI]  Beta calculation failed for {ticker}: Insufficient periods ({periods_1yr} < 30)")
             return np.nan, best_benchmark
             
         # Calculate 1-year beta
@@ -360,38 +385,36 @@ class ETFRiskClassifier:
     
     def process_etf(self, ticker: str) -> Dict:
         """Process a single ETF and return risk classification data"""
-        print(f"Processing {ticker}...")
-        
         # Download data
         data, quality_tier, quality_score = self.download_etf_data(ticker)
-        
+
         if data is None or quality_tier == "insufficient":
             return None
-            
+
         # Calculate enhanced volatility (passing ticker for better logging)
         volatility = self.calculate_enhanced_volatility(data, ticker)
-        
+
         if pd.isna(volatility):
-            print(f"  ❌ {ticker}: Volatility calculation failed")
             return None
-            
+
         # Calculate beta (passing ticker for better logging)
         beta, best_benchmark = self.calculate_volatility_beta(data, ticker)
-        
+
         # Use fallback beta for new ETFs if calculation fails
         beta_confidence = 'normal'
         if pd.isna(beta):
             if len(data) >= 90:  # Only use fallback for ETFs with sufficient data
                 beta = 1.0
+                # Get first benchmark key (no lock needed in parallel - reading only)
                 best_benchmark = list(self.benchmark_data.keys())[0] if self.benchmark_data else 'VTS.AX'
                 beta_confidence = 'low'
                 print(f"  Using fallback beta=1.0 for {ticker} (insufficient benchmark overlap)")
             else:
                 return None  # Still reject if data is truly insufficient
-            
+
         # Classify risk
         risk_category, risk_score = self.classify_risk(volatility, beta)
-        
+
         return {
             'ticker': ticker,
             'data': data,
@@ -432,7 +455,7 @@ class ETFRiskClassifier:
                 
                 if result is None:
                     failed_downloads.append(ticker)
-                    print(f"  ✗ Failed to process {ticker}")
+                    print(f"  [EMOJI] Failed to process {ticker}")
                     continue
                 
                 # Store in appropriate risk category
@@ -454,11 +477,11 @@ class ETFRiskClassifier:
                 elif result['risk_category'] == 'HIGH':
                     high_risk_etfs[ticker] = etf_data
                 
-                print(f"  ✓ {ticker}: {result['risk_category']} risk "
+                print(f"  [EMOJI] {ticker}: {result['risk_category']} risk "
                       f"(Vol: {result['volatility']:.3f}, Beta: {result['beta']:.3f})")
                 
             except Exception as e:
-                print(f"  ✗ Error processing {ticker}: {str(e)}")
+                print(f"  [EMOJI] Error processing {ticker}: {str(e)}")
                 failed_downloads.append(ticker)
         
         # Create summary
@@ -487,6 +510,188 @@ class ETFRiskClassifier:
             'medium_risk_etfs': medium_risk_etfs,
             'high_risk_etfs': high_risk_etfs
         }, summary
+
+    def classify_etfs_parallel(self, etf_tickers: List[str], max_workers: int = 8) -> Tuple[Dict, Dict]:
+        """
+        Parallel version of ETF classification using ThreadPoolExecutor
+
+        Much faster for downloading data from yfinance (I/O bound)
+        Uses threading instead of multiprocessing for I/O bound tasks
+
+        Args:
+            etf_tickers: List of ETF tickers to classify
+            max_workers: Number of parallel download threads (default: 8)
+
+        Returns:
+            (classified_etfs, summary) - Same format as classify_etfs
+        """
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        print(f"Starting parallel ETF risk classification ({max_workers} threads)...")
+        start_time = time.time()
+
+        # Disable cache for parallel execution to ensure thread isolation
+        # Each thread gets its own fresh copy of data, avoiding race conditions
+        original_cache_setting = self.enable_cache
+        self.enable_cache = False
+
+        try:
+            # Download benchmark data once (to be shared by all threads)
+            self.download_benchmark_data()
+
+            # Deep copy ALL benchmark data ONCE in main thread (before threads start)
+            # This prevents race conditions when threads read from shared dict
+            benchmark_copies = {}
+            for name, df in self.benchmark_data.items():
+                benchmark_copies[name] = df.copy(deep=True)
+
+            # Initialize result dictionaries
+            low_risk_etfs = {}
+            medium_risk_etfs = {}
+            high_risk_etfs = {}
+            failed_downloads = []
+            results_lock = __import__('threading').Lock()  # Thread-safe access
+
+            total_etfs = len(etf_tickers)
+            completed = 0
+
+            # Create SHARED yfinance lock - ONE lock for ALL threads to prevent concurrent yfinance calls
+            # (yfinance is NOT thread-safe, concurrent downloads corrupt data!)
+            yfinance_lock = __import__('threading').Lock()
+
+            # Create thread-local storage for classifiers
+            thread_local = __import__('threading').local()
+
+            def get_thread_classifier():
+                """Get or create thread-local classifier with isolated benchmark data"""
+                if not hasattr(thread_local, 'classifier'):
+                    # Create new classifier instance for this thread
+                    thread_local.classifier = ETFRiskClassifier(enable_cache=False)
+
+                    # CRITICAL: Override the classifier's cache lock with the SHARED yfinance lock
+                    # This ensures all threads serialize yfinance calls through one lock
+                    thread_local.classifier._yfinance_lock = yfinance_lock
+
+                    # Each thread gets its OWN deep copy of benchmark data from the pre-copies
+                    # This ensures complete isolation - no shared mutable state
+                    thread_local.classifier.benchmark_data = {}
+                    for name, df in benchmark_copies.items():
+                        thread_local.classifier.benchmark_data[name] = df.copy(deep=True)
+
+                return thread_local.classifier
+
+            def process_ticker_wrapper(ticker: str) -> Tuple[str, Dict]:
+                """Wrapper that processes one ticker with thread-local classifier"""
+                try:
+                    # Get thread-local classifier with isolated data
+                    thread_classifier = get_thread_classifier()
+                    result = thread_classifier.process_etf(ticker)
+
+                    if result is None:
+                        return ticker, None
+
+                    # Create isolated dict with copies of all values (no shared references)
+                    isolated_result = {
+                        'data': result['data'],  # CRITICAL: Include raw price data for downstream analysis
+                        'ticker': str(result['ticker']),
+                        'volatility': float(result['volatility']),
+                        'beta': float(result['beta']),
+                        'best_benchmark': str(result['best_benchmark']) if result['best_benchmark'] else None,
+                        'quality_tier': str(result['quality_tier']),
+                        'quality_score': float(result['quality_score']),
+                        'risk_category': str(result['risk_category']),
+                        'risk_score': float(result['risk_score']),
+                        'beta_confidence': str(result['beta_confidence'])
+                    }
+                    return ticker, isolated_result
+                except Exception as e:
+                    print(f"  [ERROR] {ticker}: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+                    return ticker, None
+
+            print(f"Downloading data for {total_etfs} ETFs using {max_workers} threads...")
+
+            # Use ThreadPoolExecutor for parallel I/O-bound downloads
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                # Submit all tasks
+                future_to_ticker = {
+                    executor.submit(process_ticker_wrapper, ticker): ticker
+                    for ticker in etf_tickers
+                }
+
+                # Process results as they complete
+                for future in as_completed(future_to_ticker):
+                    completed += 1
+
+                    try:
+                        ticker, result = future.result(timeout=120)
+
+                        if result is None:
+                            failed_downloads.append(ticker)
+                            print(f"  [{completed}/{total_etfs}] {ticker}: Failed")
+                            continue
+
+                        # Thread-safe storage of results
+                        with results_lock:
+                            etf_data = {
+                                'data': result['data'],  # CRITICAL: Include raw price data for downstream analysis
+                                'volatility': result['volatility'],
+                                'beta': result['beta'],
+                                'best_benchmark': result['best_benchmark'],
+                                'quality_tier': result['quality_tier'],
+                                'quality_score': result['quality_score'],
+                                'risk_score': result['risk_score'],
+                                'etf_info': self.etf_database.etf_data.get(ticker, {})
+                            }
+
+                            if result['risk_category'] == 'LOW':
+                                low_risk_etfs[ticker] = etf_data
+                            elif result['risk_category'] == 'MEDIUM':
+                                medium_risk_etfs[ticker] = etf_data
+                            elif result['risk_category'] == 'HIGH':
+                                high_risk_etfs[ticker] = etf_data
+
+                        print(f"  [{completed}/{total_etfs}] {ticker}: {result['risk_category']} "
+                              f"(Vol: {result['volatility']:.3f}, Beta: {result['beta']:.3f})")
+
+                    except Exception as e:
+                        print(f"  [{completed}/{total_etfs}] {ticker}: Exception - {str(e)}")
+                        failed_downloads.append(ticker)
+
+            # Create summary
+            processing_time = time.time() - start_time
+            summary = {
+                'total_processed': total_etfs,
+                'low_risk_count': len(low_risk_etfs),
+                'medium_risk_count': len(medium_risk_etfs),
+                'high_risk_count': len(high_risk_etfs),
+                'failed_downloads': failed_downloads,
+                'processing_time_seconds': processing_time,
+                'parallel_mode': True,
+                'num_threads': max_workers
+            }
+
+            print(f"\n{'='*60}")
+            print(f"PARALLEL CLASSIFICATION COMPLETE")
+            print(f"{'='*60}")
+            print(f"Total processed: {summary['total_processed']}")
+            print(f"Low risk: {summary['low_risk_count']}")
+            print(f"Medium risk: {summary['medium_risk_count']}")
+            print(f"High risk: {summary['high_risk_count']}")
+            print(f"Failed downloads: {len(failed_downloads)}")
+            print(f"Processing time: {processing_time:.1f} seconds ({total_etfs/processing_time:.1f} ETF/sec)")
+
+            return {
+                'low_risk_etfs': low_risk_etfs,
+                'medium_risk_etfs': medium_risk_etfs,
+                'high_risk_etfs': high_risk_etfs
+            }, summary
+
+        finally:
+            # Restore original cache setting
+            # (benchmark_data unchanged - thread-local classifiers have their own copies)
+            self.enable_cache = original_cache_setting
 
 
 def main():
