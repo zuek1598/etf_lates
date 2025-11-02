@@ -204,19 +204,42 @@ class VolumeIntelligence:
             # Fallback: Use close as proxy
             high = low = close = prices
         
-        for i in range(n):
-            # Money Flow Multiplier
-            if high.iloc[i] == low.iloc[i]:
-                mfm = 0
-            else:
-                mfm = ((close.iloc[i] - low.iloc[i]) - (high.iloc[i] - close.iloc[i])) / (high.iloc[i] - low.iloc[i])
-            
-            # Money Flow Volume
-            mfv = mfm * volume.iloc[i]
-            
-            # Cumulative A/D Line
-            ad_line[i] = ad_line[i-1] + mfv if i > 0 else mfv
-        
+        # Vectorized calculation (2-3x faster)
+        try:
+            high_arr = high.values if hasattr(high, 'values') else high
+            low_arr = low.values if hasattr(low, 'values') else low
+            close_arr = close.values if hasattr(close, 'values') else close
+            volume_arr = volume.values if hasattr(volume, 'values') else volume
+
+            # Vectorized operations
+            high_low_diff = high_arr - low_arr
+            high_low_diff = np.where(high_low_diff == 0, 1e-10, high_low_diff)
+
+            # Money Flow Multiplier (vectorized)
+            mfm = ((close_arr - low_arr) - (high_arr - close_arr)) / high_low_diff
+            mfm = np.where(close_arr == 0, 0, mfm)
+
+            # Money Flow Volume (vectorized)
+            mfv = mfm * volume_arr
+
+            # Cumulative A/D line (vectorized)
+            ad_line = np.cumsum(mfv)
+
+        except:
+            # Fallback to Python loop if vectorization fails
+            for i in range(n):
+                # Money Flow Multiplier
+                if high.iloc[i] == low.iloc[i]:
+                    mfm = 0
+                else:
+                    mfm = ((close.iloc[i] - low.iloc[i]) - (high.iloc[i] - close.iloc[i])) / (high.iloc[i] - low.iloc[i])
+
+                # Money Flow Volume
+                mfv = mfm * volume.iloc[i]
+
+                # Cumulative A/D Line
+                ad_line[i] = ad_line[i-1] + mfv if i > 0 else mfv
+
         return pd.Series(ad_line, index=prices.index)
     
     def _calculate_volume_confidence(self, volume: pd.Series) -> float:

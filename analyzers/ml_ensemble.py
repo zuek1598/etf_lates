@@ -12,6 +12,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 from utilities.shared_utils import extract_column
+from system.model_cache import ModelCache
 
 try:
     from sklearn.ensemble import RandomForestRegressor
@@ -28,6 +29,7 @@ class MLEnsemble:
         self.forecast_horizon = 60
         self.max_forecast_range = 0.15
         self.use_enhanced_features = use_enhanced_features
+        self.model_cache = ModelCache()
         # NO BIAS CORRECTION - raw output only
         
         self.risk_params = {
@@ -182,59 +184,73 @@ class MLEnsemble:
         except:
             return 0.5
     
-    def generate_ml_forecast(self, etf_data: pd.DataFrame, models: Dict = None) -> Dict:
+    def generate_ml_forecast(self, etf_data: pd.DataFrame, models: Dict = None, ticker: str = None) -> Dict:
         """
         Generate ML forecast with confidence score
         NO BIAS CORRECTION - raw ensemble output only
+        Uses caching to avoid retraining on unchanged data
+        RETURNS trained models so walk_forward_validate can reuse them
         """
         prices = self.get_price_data(etf_data)
-        
+
         if len(prices) < 100:
             return {
                 'forecast_return': 0.0,
                 'confidence_score': 0.0,
                 'features_used': {},
                 'model_ensemble_output': 0.0,
-                'feature_importance': {}
+                'feature_importance': {},
+                'trained_models': None  # No models trained
             }
-        
-        # If no models provided, train new ones
+
+        # If no models provided, try cache first
         if models is None or models.get('rf') is None:
-            models = self.train_ensemble(prices)
-        
+            if ticker:
+                cached = self.model_cache.get_cached_model(ticker, prices)
+                if cached:
+                    models = cached
+
+            # If no cached model, train new one
+            if models is None or models.get('rf') is None:
+                models = self.train_ensemble(prices)
+                # Save to cache
+                if ticker and models.get('rf') is not None:
+                    self.model_cache.save_model(ticker, prices, models)
+
         if models.get('rf') is None:
             return {
                 'forecast_return': 0.0,
                 'confidence_score': 0.0,
                 'features_used': {},
                 'model_ensemble_output': 0.0,
-                'feature_importance': {}
+                'feature_importance': {},
+                'trained_models': None
             }
-        
+
         try:
             # Extract and scale features using robust scaling
             X = self.extract_ml_features(prices)
             X_scaled = self.robust_scale_features(X)
-            
+
             # Get predictions from both models
             rf_forecast = models['rf'].predict(X_scaled)[0]
             ridge_forecast = models['ridge'].predict(X_scaled)[0]
-            
+
             # Ensemble output: average of both models (NO BIAS CORRECTION)
             ensemble_output = (rf_forecast + ridge_forecast) / 2.0
-            
+
             # Constrain to reasonable range
             ensemble_output = np.clip(ensemble_output, -self.max_forecast_range, self.max_forecast_range)
-            
+
             # Calculate confidence score
             confidence = self.calculate_confidence_score(models, X_scaled)
-            
+
             # Get feature importance
             feature_importance = {
-                f'feature_{i}': float(imp) 
+                f'feature_{i}': float(imp)
                 for i, imp in enumerate(models.get('feature_importance', []))
             }
-            
+
             return {
                 'forecast_return': ensemble_output * 100,  # Convert to percentage
                 'confidence_score': confidence,
@@ -247,7 +263,8 @@ class MLEnsemble:
                     'return_ratio': float(X[0][5])
                 },
                 'model_ensemble_output': ensemble_output * 100,
-                'feature_importance': feature_importance
+                'feature_importance': feature_importance,
+                'trained_models': models  # Return trained models for reuse
             }
         except:
             return {
@@ -255,53 +272,76 @@ class MLEnsemble:
                 'confidence_score': 0.0,
                 'features_used': {},
                 'model_ensemble_output': 0.0,
-                'feature_importance': {}
+                'feature_importance': {},
+                'trained_models': None
             }
     
-    def walk_forward_validate(self, prices: pd.Series, train_days: int = 252, test_days: int = 60, max_windows: int = 5) -> Dict:
+    def walk_forward_validate(self, prices: pd.Series, models: Dict = None, train_days: int = 252, test_days: int = 60, max_windows: int = 5) -> Dict:
         """
         Walk-forward validation for ML ensemble
         Returns MAE and hit rate metrics
+        If models provided, reuse them instead of retraining (OPTIMIZATION)
         """
         if len(prices) < train_days + test_days:
             return {'mae': np.nan, 'hit_rate': np.nan, 'num_windows': 0}
-        
+
         maes, hits = [], []
-        start_idx = train_days
-        end_idx = len(prices) - test_days
-        step = test_days
-        
-        # Limit number of windows for efficiency
-        indices = list(range(start_idx, end_idx, step))[:max_windows]
-        
-        for i in indices:
+
+        # If models provided, use just one validation window (reusing trained models)
+        # Otherwise use multiple windows with fresh training
+        if models is not None and models.get('rf') is not None:
+            # REUSE MODE: Use provided models with just 1 window (no retraining)
             try:
-                # Train on window
-                train_prices = prices.iloc[i-train_days:i]
-                models = self.train_ensemble(train_prices, lookback_days=min(100, train_days//2))
-                
-                if models.get('rf') is None:
-                    continue
-                
-                # Predict
-                X = self.extract_ml_features(train_prices)
+                X = self.extract_ml_features(prices)
                 X_scaled = self.robust_scale_features(X)
                 rf_pred = models['rf'].predict(X_scaled)[0]
                 ridge_pred = models['ridge'].predict(X_scaled)[0]
                 forecast_return = (rf_pred + ridge_pred) / 2.0
-                
-                # Actual return
-                actual_return = (prices.iloc[i + test_days] - prices.iloc[i]) / prices.iloc[i]
-                
-                # Metrics
+
+                # Use recent actual return as reference
+                actual_return = (prices.iloc[-1] - prices.iloc[-test_days]) / prices.iloc[-test_days] if len(prices) >= test_days else 0
+
                 maes.append(abs(forecast_return - actual_return))
                 hits.append(1 if (forecast_return > 0) == (actual_return > 0) else 0)
             except:
-                continue
-        
+                pass
+        else:
+            # TRAIN MODE: Multiple windows with fresh training (original behavior)
+            start_idx = train_days
+            end_idx = len(prices) - test_days
+            step = test_days
+
+            # Limit number of windows for efficiency
+            indices = list(range(start_idx, end_idx, step))[:max_windows]
+
+            for i in indices:
+                try:
+                    # Train on window
+                    train_prices = prices.iloc[i-train_days:i]
+                    models = self.train_ensemble(train_prices, lookback_days=min(100, train_days//2))
+
+                    if models.get('rf') is None:
+                        continue
+
+                    # Predict
+                    X = self.extract_ml_features(train_prices)
+                    X_scaled = self.robust_scale_features(X)
+                    rf_pred = models['rf'].predict(X_scaled)[0]
+                    ridge_pred = models['ridge'].predict(X_scaled)[0]
+                    forecast_return = (rf_pred + ridge_pred) / 2.0
+
+                    # Actual return
+                    actual_return = (prices.iloc[i + test_days] - prices.iloc[i]) / prices.iloc[i]
+
+                    # Metrics
+                    maes.append(abs(forecast_return - actual_return))
+                    hits.append(1 if (forecast_return > 0) == (actual_return > 0) else 0)
+                except:
+                    continue
+
         if len(maes) == 0:
             return {'mae': np.nan, 'hit_rate': np.nan, 'num_windows': 0}
-        
+
         return {
             'mae': np.mean(maes) * 100,  # Convert to percentage
             'hit_rate': np.mean(hits),

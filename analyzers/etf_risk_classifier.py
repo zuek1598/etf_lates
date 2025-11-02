@@ -435,9 +435,12 @@ class ETFRiskClassifier:
         """
         print("Starting ETF risk classification...")
         start_time = time.time()
-        
-        # Download benchmark data first
-        self.download_benchmark_data()
+
+        # Download benchmark data first (FIX 2: Skip if already loaded)
+        if not self.benchmark_data:
+            self.download_benchmark_data()
+        else:
+            print("  [EMOJI] Using cached benchmark data (already loaded)")
         
         # Initialize result dictionaries
         low_risk_etfs = {}
@@ -536,8 +539,11 @@ class ETFRiskClassifier:
         self.enable_cache = False
 
         try:
-            # Download benchmark data once (to be shared by all threads)
-            self.download_benchmark_data()
+            # Download benchmark data once (to be shared by all threads) (FIX 2: Skip if already loaded)
+            if not self.benchmark_data:
+                self.download_benchmark_data()
+            else:
+                print("  [CACHE] Using cached benchmark data (already loaded)")
 
             # Deep copy ALL benchmark data ONCE in main thread (before threads start)
             # This prevents race conditions when threads read from shared dict

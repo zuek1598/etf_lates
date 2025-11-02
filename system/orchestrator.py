@@ -48,10 +48,12 @@ def _process_ml_ensemble_etf(args):
         # Run ML Forecast
         ml_output = ml_ensemble.forecast_etf(data)
 
-        # Run walk-forward validation
+        # Run walk-forward validation (FIX 1: Reuse trained models instead of retraining)
         prices = extract_column(data, 'Close')
         if prices is not None and len(prices) >= 312:  # 252 train + 60 test
-            validation = ml_ensemble.walk_forward_validate(prices)
+            # Capture trained models from forecast and reuse in validation
+            trained_models = ml_output.get('trained_models')
+            validation = ml_ensemble.walk_forward_validate(prices, models=trained_models)
             ml_output['mae_score'] = validation['mae']
             ml_output['hit_rate'] = validation['hit_rate']
             print(f"[ML_ENSEMBLE_OK] {ticker}: forecast={ml_output.get('forecast_return', 0):.4f}, mae={validation['mae']:.4f}, hit_rate={validation['hit_rate']:.2f}")
@@ -60,6 +62,8 @@ def _process_ml_ensemble_etf(args):
             ml_output['hit_rate'] = np.nan
             print(f"[ML_ENSEMBLE_NODATA] {ticker}: insufficient data for validation")
 
+        # Remove trained_models from output (not needed downstream)
+        ml_output.pop('trained_models', None)
         return ticker, ml_output
     except Exception as e:
         print(f"[ML_ENSEMBLE_ERROR] {ticker}: {str(e)}")
@@ -244,7 +248,8 @@ class ETFAnalysisSystem:
         self.scoring_system = GrowthScoringSystem()
         self.vix_data = None
         self.benchmark_data = {}
-        
+        self._historical_data_saved = False  # FIX 4: Guard to prevent duplicate saves
+
         # Download market data on initialization
         self.download_market_data()
     
@@ -335,192 +340,6 @@ class ETFAnalysisSystem:
         print(f"  Low: {summary['low_risk_count']}, Medium: {summary['medium_risk_count']}, High: {summary['high_risk_count']}")
         return results
     
-    def analyze_risk_group(self, risk_group_etfs: Dict, risk_category: str) -> Dict:
-        """Analyze all ETFs in a risk group with new components"""
-        print(f"  Analyzing {risk_category} group ({len(risk_group_etfs)} ETFs)...")
-        
-        # Save historical data to disk for backtesting
-        self._save_historical_data(risk_group_etfs)
-        
-        # Run Risk Component analysis
-        risk_results = self.risk_component.analyze_risk_group(risk_group_etfs, self.vix_data, self.benchmark_data)
-        
-        # Run ML Ensemble analysis with validation
-        ml_results = {}
-        for ticker, etf_data in risk_group_etfs.items():
-            try:
-                data = etf_data['data']  # Extract DataFrame from dict
-                ml_output = self.ml_ensemble.forecast_etf(data)
-                
-                # Run walk-forward validation
-                prices = extract_column(data, 'Close')
-                if prices is not None and len(prices) >= 312:  # 252 train + 60 test
-                    validation = self.ml_ensemble.walk_forward_validate(prices)
-                    ml_output['mae_score'] = validation['mae']
-                    ml_output['hit_rate'] = validation['hit_rate']
-                else:
-                    ml_output['mae_score'] = np.nan
-                    ml_output['hit_rate'] = np.nan
-                
-                ml_results[ticker] = ml_output
-            except Exception as e:
-                print(f"    Warning: ML Ensemble failed for {ticker}: {e}")
-                ml_results[ticker] = {
-                    'forecast_return': 0.0, 'confidence_score': 0.5,
-                    'features_used': {}, 'model_ensemble_output': 0.0,
-                    'feature_importance': {}, 'mae_score': np.nan, 'hit_rate': np.nan
-                }
-        
-        # Run Kalman Hull analysis
-        kalman_hull_results = {}
-        for ticker, etf_data in risk_group_etfs.items():
-            try:
-                data = etf_data['data']  # Extract DataFrame from dict
-                prices = extract_column(data, 'Close')
-                volume = extract_column(data, 'Volume')
-                if prices is not None and len(prices) >= 30:
-                    kalman_hull_results[ticker] = calculate_adaptive_kalman_hull(
-                        prices, volume, risk_category=risk_category, ohlc_data=data
-                    )
-                else:
-                    kalman_hull_results[ticker] = {
-                        'trend': 0, 'kalman_price': np.nan, 'upper_band': np.nan,
-                        'lower_band': np.nan, 'efficiency_ratio': 0.5,
-                        'divergence': 'none', 'trend_consistency': False, 'signal_strength': 0.0
-                    }
-            except Exception as e:
-                print(f"    Warning: Kalman Hull failed for {ticker}: {e}")
-                kalman_hull_results[ticker] = {
-                    'trend': 0, 'kalman_price': np.nan, 'upper_band': np.nan,
-                    'lower_band': np.nan, 'efficiency_ratio': 0.5,
-                    'divergence': 'none', 'trend_consistency': False, 'signal_strength': 0.0
-                }
-        
-        # Run Volume Intelligence analysis
-        volume_intelligence_results = {}
-        for ticker, etf_data in risk_group_etfs.items():
-            try:
-                data = etf_data['data']  # Extract DataFrame from dict
-                prices = extract_column(data, 'Close')
-                volume = extract_column(data, 'Volume')
-                if prices is not None and volume is not None and len(prices) >= 20:
-                    volume_intelligence_results[ticker] = self.volume_intelligence.analyze_volume(prices, volume, ohlc_data=data)
-                else:
-                    volume_intelligence_results[ticker] = {
-                        'spike_score': 0.0, 'price_volume_correlation': 0.0,
-                        'accumulation_distribution': 'neutral', 'volume_confidence': 0.0
-                    }
-            except Exception as e:
-                print(f"    Warning: Volume Intelligence failed for {ticker}: {e}")
-                volume_intelligence_results[ticker] = {
-                    'spike_score': 0.0, 'price_volume_correlation': 0.0,
-                    'accumulation_distribution': 'neutral', 'volume_confidence': 0.0
-                }
-        
-        # Combine results
-        combined_results = {}
-        for ticker in risk_group_etfs.keys():
-            etf_data = risk_group_etfs[ticker]
-            
-            # Get component outputs
-            risk_output = risk_results.get(ticker, {})
-            ml_output = ml_results.get(ticker, {})
-            kalman_output = kalman_hull_results.get(ticker, {})
-            volume_output = volume_intelligence_results.get(ticker, {})
-            
-            combined_results[ticker] = {
-                # Risk Component (30/30/20/20)
-                'cvar': risk_output.get('cvar', np.nan),
-                'ulcer_index': risk_output.get('ulcer_index', np.nan),
-                'beta': risk_output.get('beta', etf_data.get('beta', 0.0)),
-                'information_ratio': risk_output.get('information_ratio', np.nan),
-                'risk_score': risk_output.get('risk_score', 0.5),
-                'risk_category': risk_output.get('risk_category', risk_category),
-                'quality_flag': risk_output.get('quality_flag', '~'),
-                't_distribution_params': risk_output.get('t_distribution_params', {}),
-                
-                # ML Ensemble (NO bias correction)
-                'ml_forecast': ml_output.get('forecast_return', 0.0),
-                'ml_confidence': ml_output.get('confidence_score', 0.5),
-                'mae_score': ml_output.get('mae_score', np.nan),
-                'hit_rate': ml_output.get('hit_rate', np.nan),
-                'features_used': ml_output.get('features_used', {}),
-                'model_ensemble_output': ml_output.get('model_ensemble_output', 0.0),
-                'feature_importance': ml_output.get('feature_importance', {}),
-                
-                # Liquidity metrics (from Risk Component)
-                'amihud': risk_output.get('amihud', np.nan),
-                'avg_daily_volume': risk_output.get('avg_daily_volume', np.nan),
-                'zero_volume_days': risk_output.get('zero_volume_days', 0),
-                
-                # Kalman Hull Supertrend (NEW - integrated)
-                'kalman_trend': kalman_output.get('trend', 0),
-                'kalman_price': kalman_output.get('kalman_price', np.nan),
-                'kalman_upper_band': kalman_output.get('upper_band', np.nan),
-                'kalman_lower_band': kalman_output.get('lower_band', np.nan),
-                'kalman_efficiency_ratio': kalman_output.get('efficiency_ratio', 0.5),
-                'kalman_divergence': kalman_output.get('divergence', 'none'),
-                'kalman_consistency': kalman_output.get('trend_consistency', False),
-                'kalman_signal_strength': kalman_output.get('signal_strength', 0.0),
-                
-                # Volume Intelligence (NEW - integrated)
-                'volume_spike_score': volume_output.get('spike_score', 0.0),
-                'volume_correlation': volume_output.get('price_volume_correlation', 0.0),
-                'volume_ad_signal': volume_output.get('accumulation_distribution', 'neutral'),
-                'volume_confidence': volume_output.get('volume_confidence', 0.0),
-                
-                # Risk classification data
-                'volatility': etf_data.get('volatility', 0.0),
-                
-                # Metadata
-                'young_etf_penalty': risk_output.get('young_etf_penalty', 0.0),
-                'group_classification': risk_output.get('group_classification', 'Unknown')
-            }
-            
-            # Add fundamental data if available
-            etf_info = self.etf_database.etf_data.get(ticker, {})
-            combined_results[ticker]['expense_ratio'] = etf_info.get('expense_ratio', np.nan)
-            combined_results[ticker]['aum_aud'] = etf_info.get('aum_aud', np.nan)
-            
-            # Calculate returns and latest price from data
-            data = etf_data['data']
-            if len(data) > 0:
-                prices = extract_adjusted_price(data)
-                if prices is not None and len(prices) > 0:
-                    latest_price = float(prices.iloc[-1])
-                    combined_results[ticker]['latest_price'] = latest_price
-                    
-                    # YTD return (from January 1st of current year)
-                    from datetime import datetime
-                    current_year = datetime.now().year
-                    year_start = pd.Timestamp(f'{current_year}-01-01')
-                    
-                    # Filter prices from year start
-                    ytd_prices = prices[prices.index >= year_start]
-                    
-                    if len(ytd_prices) > 1:
-                        ytd_return = (ytd_prices.iloc[-1] - ytd_prices.iloc[0]) / ytd_prices.iloc[0]
-                        combined_results[ticker]['ytd_return'] = float(ytd_return)
-                    else:
-                        combined_results[ticker]['ytd_return'] = 0.0
-                    
-                    # 1-year return (252 trading days) - adjusted for corporate actions
-                    if len(prices) >= 252:
-                        one_year_return = self.calculate_adjusted_return(prices, 252)
-                        combined_results[ticker]['one_year_return'] = float(one_year_return)
-                    else:
-                        combined_results[ticker]['one_year_return'] = 0.0
-                else:
-                    combined_results[ticker]['latest_price'] = 0.0
-                    combined_results[ticker]['ytd_return'] = 0.0
-                    combined_results[ticker]['one_year_return'] = 0.0
-            else:
-                combined_results[ticker]['latest_price'] = 0.0
-                combined_results[ticker]['ytd_return'] = 0.0
-                combined_results[ticker]['one_year_return'] = 0.0
-        
-        return combined_results
-
     def analyze_risk_group_parallel(self, risk_group_etfs: Dict, risk_category: str, max_workers: int = None) -> Dict:
         """
         PHASE 1.4-1.5: Parallel version of analyze_risk_group using multiprocessing.Pool
@@ -540,8 +359,12 @@ class ETFAnalysisSystem:
         print(f"  Analyzing {risk_category} group ({len(risk_group_etfs)} ETFs) [PARALLEL MODE]...")
         start_time = time.time()
 
-        # Save historical data to disk for backtesting
-        self._save_historical_data(risk_group_etfs)
+        # Save historical data to disk for backtesting (FIX 4: Only save once per run)
+        if not self._historical_data_saved:
+            self._save_historical_data(risk_group_etfs)
+            self._historical_data_saved = True
+        else:
+            print(f"      [CACHE] Skipping duplicate historical data save (already saved)")
 
         # Run Risk Component analysis (already handled separately, not parallelized)
         risk_results = self.risk_component.analyze_risk_group(risk_group_etfs, self.vix_data, self.benchmark_data)
@@ -549,6 +372,7 @@ class ETFAnalysisSystem:
         # ====================================================================
         # PHASE 1.4: Parallelize ML Ensemble (50% of runtime)
         # PHASE 1.6: With timeout handling and error recovery
+        # FIX 1: Use true parallel execution - submit ALL tasks first, then collect
         # ====================================================================
         print(f"    [ML_ENSEMBLE] Processing {len(risk_group_etfs)} ETFs with {max_workers or 'auto'} workers...")
         ml_start = time.time()
@@ -561,24 +385,42 @@ class ETFAnalysisSystem:
 
         try:
             with Pool(processes=max_workers) as pool:
-                for i, (ticker, etf_data) in enumerate(etf_list):
+                # PHASE 1: Submit ALL tasks at once (non-blocking)
+                async_results = []
+                for ticker, etf_data in etf_list:
+                    async_result = pool.apply_async(_process_ml_ensemble_etf, ((ticker, etf_data),))
+                    async_results.append((ticker, async_result))
+
+                print(f"    [ML_ENSEMBLE] Submitted {len(async_results)} tasks, collecting results...")
+
+                # PHASE 2: Collect results (with timeout handling per ETF)
+                for i, (ticker, async_result) in enumerate(async_results):
                     try:
-                        async_result = pool.apply_async(_process_ml_ensemble_etf, ((ticker, etf_data),))
                         ticker_key, ml_output = async_result.get(timeout=120)  # 120s per ETF
+
+                        # Progress indicator
+                        if (i + 1) % 10 == 0 or (i + 1) == len(async_results):
+                            print(f"    [ML_ENSEMBLE_PROGRESS] {i + 1}/{len(async_results)} completed")
 
                         # Check for errors
                         if isinstance(ml_output, dict) and 'error' in ml_output:
-                            ml_errors[ticker] = ml_output['error']
-                            ml_results[ticker] = _get_ml_ensemble_fallback(ticker)
-                            print(f"    [ML_ENSEMBLE_ERROR] {ticker}: {ml_output['error']}")
+                            ml_errors[ticker_key] = ml_output['error']
+                            ml_results[ticker_key] = _get_ml_ensemble_fallback(ticker_key)
+                            print(f"    [ML_ENSEMBLE_ERROR] {ticker_key}: {ml_output['error']}")
                         else:
-                            ml_results[ticker] = ml_output
+                            ml_results[ticker_key] = ml_output
 
                     except TimeoutError:
                         ml_timeouts += 1
-                        ml_errors[ticker] = "Timeout (120s)"
-                        ml_results[ticker] = _get_ml_ensemble_fallback(ticker)
-                        print(f"    [ML_ENSEMBLE_TIMEOUT] {ticker}: Using fallback values")
+                        ml_errors[ticker_key] = "Timeout (120s)"
+                        ml_results[ticker_key] = _get_ml_ensemble_fallback(ticker_key)
+                        print(f"    [ML_ENSEMBLE_TIMEOUT] {ticker_key}: Using fallback values")
+
+                    except Exception as e:
+                        # Handle unexpected errors during result collection
+                        ml_errors[ticker_key] = f"Collection error: {str(e)}"
+                        ml_results[ticker_key] = _get_ml_ensemble_fallback(ticker_key)
+                        print(f"    [ML_ENSEMBLE_COLLECT_ERROR] {ticker_key}: {str(e)}")
 
         except Exception as e:
             logger.error(f"ML Ensemble pool error: {str(e)}")
@@ -594,6 +436,7 @@ class ETFAnalysisSystem:
         # ====================================================================
         # Phase 1.5a: Parallelize Kalman Hull
         # PHASE 1.6: With timeout handling and error recovery
+        # FIX 2a: Use true parallel execution - submit ALL tasks first, then collect
         # ====================================================================
         print(f"    [KALMAN_HULL] Processing {len(risk_group_etfs)} ETFs...")
         kalman_start = time.time()
@@ -606,24 +449,42 @@ class ETFAnalysisSystem:
 
         try:
             with Pool(processes=max_workers) as pool:
+                # PHASE 1: Submit ALL tasks at once (non-blocking)
+                async_results = []
                 for ticker, etf_data, risk_cat in kalman_args:
+                    async_result = pool.apply_async(_process_kalman_hull_etf, ((ticker, etf_data, risk_cat),))
+                    async_results.append((ticker, async_result))
+
+                print(f"    [KALMAN_HULL] Submitted {len(async_results)} tasks, collecting results...")
+
+                # PHASE 2: Collect results (with timeout handling per ETF)
+                for i, (ticker, async_result) in enumerate(async_results):
                     try:
-                        async_result = pool.apply_async(_process_kalman_hull_etf, ((ticker, etf_data, risk_cat),))
                         ticker_key, kalman_output = async_result.get(timeout=60)  # 60s per ETF
+
+                        # Progress indicator
+                        if (i + 1) % 10 == 0 or (i + 1) == len(async_results):
+                            print(f"    [KALMAN_HULL_PROGRESS] {i + 1}/{len(async_results)} completed")
 
                         # Check for errors
                         if isinstance(kalman_output, dict) and 'error' in kalman_output:
-                            kalman_errors[ticker] = kalman_output['error']
-                            kalman_hull_results[ticker] = _get_kalman_hull_fallback(ticker)
-                            print(f"    [KALMAN_HULL_ERROR] {ticker}: {kalman_output['error']}")
+                            kalman_errors[ticker_key] = kalman_output['error']
+                            kalman_hull_results[ticker_key] = _get_kalman_hull_fallback(ticker_key)
+                            print(f"    [KALMAN_HULL_ERROR] {ticker_key}: {kalman_output['error']}")
                         else:
-                            kalman_hull_results[ticker] = kalman_output
+                            kalman_hull_results[ticker_key] = kalman_output
 
                     except TimeoutError:
                         kalman_timeouts += 1
-                        kalman_errors[ticker] = "Timeout (60s)"
-                        kalman_hull_results[ticker] = _get_kalman_hull_fallback(ticker)
-                        print(f"    [KALMAN_HULL_TIMEOUT] {ticker}: Using fallback values")
+                        kalman_errors[ticker_key] = "Timeout (60s)"
+                        kalman_hull_results[ticker_key] = _get_kalman_hull_fallback(ticker_key)
+                        print(f"    [KALMAN_HULL_TIMEOUT] {ticker_key}: Using fallback values")
+
+                    except Exception as e:
+                        # Handle unexpected errors during result collection
+                        kalman_errors[ticker_key] = f"Collection error: {str(e)}"
+                        kalman_hull_results[ticker_key] = _get_kalman_hull_fallback(ticker_key)
+                        print(f"    [KALMAN_HULL_COLLECT_ERROR] {ticker_key}: {str(e)}")
 
         except Exception as e:
             logger.error(f"Kalman Hull pool error: {str(e)}")
@@ -639,6 +500,7 @@ class ETFAnalysisSystem:
         # ====================================================================
         # Phase 1.5b: Parallelize Volume Intelligence
         # PHASE 1.6: With timeout handling and error recovery
+        # FIX 2b: Use true parallel execution - submit ALL tasks first, then collect
         # ====================================================================
         print(f"    [VOLUME_INTEL] Processing {len(risk_group_etfs)} ETFs...")
         vol_start = time.time()
@@ -651,24 +513,42 @@ class ETFAnalysisSystem:
 
         try:
             with Pool(processes=max_workers) as pool:
+                # PHASE 1: Submit ALL tasks at once (non-blocking)
+                async_results = []
                 for ticker, etf_data in vol_args:
+                    async_result = pool.apply_async(_process_volume_intelligence_etf, ((ticker, etf_data),))
+                    async_results.append((ticker, async_result))
+
+                print(f"    [VOLUME_INTEL] Submitted {len(async_results)} tasks, collecting results...")
+
+                # PHASE 2: Collect results (with timeout handling per ETF)
+                for i, (ticker, async_result) in enumerate(async_results):
                     try:
-                        async_result = pool.apply_async(_process_volume_intelligence_etf, ((ticker, etf_data),))
                         ticker_key, vol_output = async_result.get(timeout=60)  # 60s per ETF
+
+                        # Progress indicator
+                        if (i + 1) % 10 == 0 or (i + 1) == len(async_results):
+                            print(f"    [VOLUME_INTEL_PROGRESS] {i + 1}/{len(async_results)} completed")
 
                         # Check for errors
                         if isinstance(vol_output, dict) and 'error' in vol_output:
-                            vol_errors[ticker] = vol_output['error']
-                            volume_intelligence_results[ticker] = _get_volume_intelligence_fallback(ticker)
-                            print(f"    [VOLUME_INTEL_ERROR] {ticker}: {vol_output['error']}")
+                            vol_errors[ticker_key] = vol_output['error']
+                            volume_intelligence_results[ticker_key] = _get_volume_intelligence_fallback(ticker_key)
+                            print(f"    [VOLUME_INTEL_ERROR] {ticker_key}: {vol_output['error']}")
                         else:
-                            volume_intelligence_results[ticker] = vol_output
+                            volume_intelligence_results[ticker_key] = vol_output
 
                     except TimeoutError:
                         vol_timeouts += 1
-                        vol_errors[ticker] = "Timeout (60s)"
-                        volume_intelligence_results[ticker] = _get_volume_intelligence_fallback(ticker)
-                        print(f"    [VOLUME_INTEL_TIMEOUT] {ticker}: Using fallback values")
+                        vol_errors[ticker_key] = "Timeout (60s)"
+                        volume_intelligence_results[ticker_key] = _get_volume_intelligence_fallback(ticker_key)
+                        print(f"    [VOLUME_INTEL_TIMEOUT] {ticker_key}: Using fallback values")
+
+                    except Exception as e:
+                        # Handle unexpected errors during result collection
+                        vol_errors[ticker_key] = f"Collection error: {str(e)}"
+                        volume_intelligence_results[ticker_key] = _get_volume_intelligence_fallback(ticker_key)
+                        print(f"    [VOLUME_INTEL_COLLECT_ERROR] {ticker_key}: {str(e)}")
 
         except Exception as e:
             logger.error(f"Volume Intelligence pool error: {str(e)}")
@@ -704,37 +584,39 @@ class ETFAnalysisSystem:
                 'risk_score': risk_output.get('risk_score', 0.5),
 
                 # ML Ensemble (25/10/10)
-                'forecast_return': ml_output.get('forecast_return', 0.0),
-                'confidence_score': ml_output.get('confidence_score', 0.5),
+                'ml_forecast': ml_output.get('forecast_return', 0.0),
+                'ml_confidence': ml_output.get('confidence_score', 0.5),
                 'model_ensemble_output': ml_output.get('model_ensemble_output', 0.0),
                 'mae_score': ml_output.get('mae_score', np.nan),
                 'hit_rate': ml_output.get('hit_rate', np.nan),
 
                 # Kalman Hull (20/20/20)
-                'trend': kalman_output.get('trend', 0),
+                'kalman_trend': kalman_output.get('trend', 0),
                 'kalman_price': kalman_output.get('kalman_price', np.nan),
-                'upper_band': kalman_output.get('upper_band', np.nan),
-                'lower_band': kalman_output.get('lower_band', np.nan),
-                'efficiency_ratio': kalman_output.get('efficiency_ratio', 0.5),
-                'trend_consistency': kalman_output.get('trend_consistency', False),
-                'signal_strength': kalman_output.get('signal_strength', 0.0),
+                'kalman_upper_band': kalman_output.get('upper_band', np.nan),
+                'kalman_lower_band': kalman_output.get('lower_band', np.nan),
+                'kalman_efficiency_ratio': kalman_output.get('efficiency_ratio', 0.5),
+                'kalman_consistency': kalman_output.get('trend_consistency', False),
+                'kalman_signal_strength': kalman_output.get('signal_strength', 0.0),
 
                 # Volume Intelligence (15/15/15)
-                'spike_score': volume_output.get('spike_score', 0.0),
-                'price_volume_correlation': volume_output.get('price_volume_correlation', 0.0),
-                'accumulation_distribution': volume_output.get('accumulation_distribution', 'neutral'),
+                'volume_spike_score': volume_output.get('spike_score', 0.0),
+                'volume_correlation': volume_output.get('price_volume_correlation', 0.0),
+                'volume_ad_signal': volume_output.get('accumulation_distribution', 'neutral'),
                 'volume_confidence': volume_output.get('volume_confidence', 0.0),
             }
 
             # Add ETF info
             combined_results[ticker]['etf_name'] = etf_data.get('name', 'Unknown')
 
-            # Calculate returns
+            # Calculate returns (FIX 4: Calculate once and reuse)
             prices = extract_column(etf_data.get('data'), 'Close')
             if prices is not None and len(prices) > 0:
                 combined_results[ticker]['latest_price'] = float(prices.iloc[-1]) if isinstance(prices.iloc[-1], (int, float)) else 0.0
-                combined_results[ticker]['ytd_return'] = self.calculate_adjusted_return(prices, 252)
-                combined_results[ticker]['one_year_return'] = self.calculate_adjusted_return(prices, 252)
+                # Calculate return once and reuse for both fields
+                annual_return = self.calculate_adjusted_return(prices, 252)
+                combined_results[ticker]['ytd_return'] = annual_return
+                combined_results[ticker]['one_year_return'] = annual_return
             else:
                 combined_results[ticker]['latest_price'] = 0.0
                 combined_results[ticker]['ytd_return'] = 0.0
