@@ -69,11 +69,11 @@ class ETFRiskClassifier:
                 data = yf.download(ticker, period="max", progress=False)
                 if not data.empty:
                     self.benchmark_data[name] = data
-                    print(f"    [EMOJI] {name}: {len(data)} days")
+                    print(f"    {name}: {len(data)} days")
                 else:
-                    print(f"    [EMOJI] {name}: No data")
+                    print(f"    {name}: No data")
             except Exception as e:
-                print(f"    [EMOJI] {name}: Error - {str(e)}")
+                print(f"    {name}: Error - {str(e)}")
                 
         print(f"Successfully downloaded {len(self.benchmark_data)} benchmarks")
         return self.benchmark_data
@@ -110,12 +110,12 @@ class ETFRiskClassifier:
 
                 if data is None or data.empty or len(data) < 30:  # Minimum 30 days
                     if attempt < max_retries - 1:
-                        print(f"  [EMOJI]  {ticker}: No data returned, retrying in {retry_delay}s... (attempt {attempt + 1}/{max_retries})")
+                        print(f"   {ticker}: No data returned, retrying in {retry_delay}s... (attempt {attempt + 1}/{max_retries})")
                         time.sleep(retry_delay)
                         retry_delay *= 2  # Exponential backoff
                         continue
                     else:
-                        print(f"  [EMOJI] {ticker}: Insufficient data after {max_retries} attempts")
+                        print(f"  {ticker}: Insufficient data after {max_retries} attempts")
                         return None, "insufficient", 0.0
 
                 # Calculate data quality
@@ -146,11 +146,11 @@ class ETFRiskClassifier:
 
             except Exception as e:
                 if attempt < max_retries - 1:
-                    print(f"  [EMOJI]  {ticker}: Error ({str(e)}), retrying in {retry_delay}s... (attempt {attempt + 1}/{max_retries})")
+                    print(f"   {ticker}: Error ({str(e)}), retrying in {retry_delay}s... (attempt {attempt + 1}/{max_retries})")
                     time.sleep(retry_delay)
                     retry_delay *= 2  # Exponential backoff
                 else:
-                    print(f"  [EMOJI] {ticker}: Failed after {max_retries} attempts - {str(e)}")
+                    print(f"  {ticker}: Failed after {max_retries} attempts - {str(e)}")
                     return None, "error", 0.0
 
         return None, "error", 0.0
@@ -187,10 +187,10 @@ class ETFRiskClassifier:
             if len(returns) >= 90:  # At least 90 days
                 actual_periods = len(returns)
                 vol_actual = returns.std() * np.sqrt(252)
-                print(f"  [EMOJI][EMOJI]  {ticker}: Using {actual_periods}-day volatility (insufficient 1-year data)")
+                print(f"  [EMOJI] {ticker}: Using {actual_periods}-day volatility (insufficient 1-year data)")
                 final_volatility = vol_actual
             else:
-                print(f"  [EMOJI] {ticker}: Insufficient data for volatility calculation ({len(returns)} < 90 days)")
+                print(f"  {ticker}: Insufficient data for volatility calculation ({len(returns)} < 90 days)")
                 return np.nan
         else:
             # Simple final volatility (consistent with 1-year beta)
@@ -304,14 +304,14 @@ class ETFRiskClassifier:
         etf_returns = close_col.pct_change().dropna()
         
         if len(etf_returns) < 30:
-            print(f"  [EMOJI]  Beta calculation failed for {ticker}: Insufficient returns ({len(etf_returns)} < 30)")
+            print(f"   Beta calculation failed for {ticker}: Insufficient returns ({len(etf_returns)} < 30)")
             return np.nan, None
             
         # Find best correlated benchmark
         best_benchmark, correlation = self.identify_highest_correlation(etf_returns)
 
         if best_benchmark is None:
-            print(f"  [EMOJI]  Beta calculation failed for {ticker}: No suitable benchmark found")
+            print(f"   Beta calculation failed for {ticker}: No suitable benchmark found")
             return np.nan, None
 
         # Thread-safe access to benchmark data
@@ -324,7 +324,7 @@ class ETFRiskClassifier:
         periods_1yr = min(252, len(etf_returns))  # Use up to 1 year of data
         
         if periods_1yr < 30:  # Need at least 1 month of data (reduced from 60 to support newer ETFs)
-            print(f"  [EMOJI]  Beta calculation failed for {ticker}: Insufficient periods ({periods_1yr} < 30)")
+            print(f"   Beta calculation failed for {ticker}: Insufficient periods ({periods_1yr} < 30)")
             return np.nan, best_benchmark
             
         # Calculate 1-year beta
@@ -440,7 +440,7 @@ class ETFRiskClassifier:
         if not self.benchmark_data:
             self.download_benchmark_data()
         else:
-            print("  [EMOJI] Using cached benchmark data (already loaded)")
+            print("  Using cached benchmark data (already loaded)")
         
         # Initialize result dictionaries
         low_risk_etfs = {}
@@ -458,7 +458,7 @@ class ETFRiskClassifier:
                 
                 if result is None:
                     failed_downloads.append(ticker)
-                    print(f"  [EMOJI] Failed to process {ticker}")
+                    print(f"  Failed to process {ticker}")
                     continue
                 
                 # Store in appropriate risk category
@@ -480,11 +480,11 @@ class ETFRiskClassifier:
                 elif result['risk_category'] == 'HIGH':
                     high_risk_etfs[ticker] = etf_data
                 
-                print(f"  [EMOJI] {ticker}: {result['risk_category']} risk "
+                print(f"  {ticker}: {result['risk_category']} risk "
                       f"(Vol: {result['volatility']:.3f}, Beta: {result['beta']:.3f})")
                 
             except Exception as e:
-                print(f"  [EMOJI] Error processing {ticker}: {str(e)}")
+                print(f"  Error processing {ticker}: {str(e)}")
                 failed_downloads.append(ticker)
         
         # Create summary

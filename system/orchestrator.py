@@ -16,7 +16,7 @@ from analyzers.risk_component import RiskComponent
 from analyzers.ml_ensemble import MLEnsemble
 from analyzers.volume_intelligence import VolumeIntelligence
 from analyzers.etf_risk_classifier import ETFRiskClassifier
-from analyzers.scoring_system_growth import GrowthScoringSystem
+from analyzers.percentile_ranker import PercentileRanker
 from indicators.kalman_hull import calculate_adaptive_kalman_hull
 from data_manager.data_manager import ETFDataManager as ETFDatabase
 from utilities.validators import validate_output
@@ -245,10 +245,10 @@ class ETFAnalysisSystem:
         self.volume_intelligence = VolumeIntelligence()
         self.risk_classifier = ETFRiskClassifier()
         self.etf_database = ETFDatabase()
-        self.scoring_system = GrowthScoringSystem()
+        self.percentile_ranker = PercentileRanker(lookback_days=252)
         self.vix_data = None
         self.benchmark_data = {}
-        self._historical_data_saved = False  # FIX 4: Guard to prevent duplicate saves
+        self._historical_data_saved = False
 
         # Download market data on initialization
         self.download_market_data()
@@ -265,26 +265,26 @@ class ETFAnalysisSystem:
             if not vix.empty:
                 close_col = vix['Close'] if isinstance(vix['Close'], pd.Series) else vix['Close'].iloc[:, 0]
                 self.vix_data = close_col
-                print(f"  [EMOJI] VIX data: {len(self.vix_data)} days")
+                print(f"  VIX data: {len(self.vix_data)} days")
         except Exception as e:
-            print(f"  [EMOJI] VIX download failed: {e}")
+            print(f"  VIX download failed: {e}")
         
         # Download benchmarks
         print("  - Downloading benchmark data...")
         self.risk_classifier.download_benchmark_data()
         self.benchmark_data = self.risk_classifier.benchmark_data
-        print(f"  [EMOJI] Benchmarks: {len(self.benchmark_data)} indices")
+        print(f"  Benchmarks: {len(self.benchmark_data)} indices")
     
     def _save_historical_data(self, risk_group_etfs: Dict):
         """Save historical data to disk for backtesting"""
         from pathlib import Path
         import traceback
         
-        print(f"      [EMOJI] DEBUG: _save_historical_data called with {len(risk_group_etfs)} ETFs")
+        print(f"      DEBUG: _save_historical_data called with {len(risk_group_etfs)} ETFs")
         
         historical_dir = Path('data/historical')
         historical_dir.mkdir(exist_ok=True, parents=True)
-        print(f"      [EMOJI] DEBUG: Directory exists: {historical_dir.exists()}, Is dir: {historical_dir.is_dir()}")
+        print(f"      DEBUG: Directory exists: {historical_dir.exists()}, Is dir: {historical_dir.is_dir()}")
         
         saved_count = 0
         failed_count = 0
@@ -293,20 +293,20 @@ class ETFAnalysisSystem:
         if risk_group_etfs:
             first_ticker = list(risk_group_etfs.keys())[0]
             first_data = risk_group_etfs[first_ticker]
-            print(f"      [EMOJI] DEBUG: First ETF ({first_ticker}) keys: {list(first_data.keys())}")
-            print(f"      [EMOJI] DEBUG: First ETF 'data' type: {type(first_data.get('data'))}")
+            print(f"      DEBUG: First ETF ({first_ticker}) keys: {list(first_data.keys())}")
+            print(f"      DEBUG: First ETF 'data' type: {type(first_data.get('data'))}")
         
         for ticker, etf_data in risk_group_etfs.items():
             try:
                 data = etf_data.get('data')
                 
                 if data is None:
-                    print(f"      [EMOJI]  {ticker}: data is None")
+                    print(f"       {ticker}: data is None")
                     failed_count += 1
                     continue
                 
                 if data.empty:
-                    print(f"      [EMOJI]  {ticker}: data is empty")
+                    print(f"       {ticker}: data is empty")
                     failed_count += 1
                     continue
                 
@@ -322,11 +322,11 @@ class ETFAnalysisSystem:
                 saved_count += 1
                 
             except Exception as e:
-                print(f"      [EMOJI] {ticker}: {type(e).__name__}: {str(e)}")
+                print(f"      {ticker}: {type(e).__name__}: {str(e)}")
                 traceback.print_exc()
                 failed_count += 1
         
-        print(f"      [EMOJI] Saved {saved_count} files, {failed_count} skipped")
+        print(f"      Saved {saved_count} files, {failed_count} skipped")
     
     def classify_etfs_by_risk(self, etf_tickers: List[str]) -> Dict:
         """Classify ETFs into risk categories"""
@@ -688,38 +688,147 @@ class ETFAnalysisSystem:
                 for ticker in etfs.keys():
                     risk_categories_map[ticker] = normalized_category
         
-        # Step 3: Calculate composite scores and rankings
-        print("\nCalculating composite scores and rankings...")
-        rankings = self.scoring_system.rank_etfs_by_category(all_results, risk_categories_map)
-        
-        # Add composite scores back to analysis results
-        for category, etf_list in rankings.items():
-            for ticker, result in etf_list:
+        # Step 3: Calculate percentile rankings
+        print("\nCalculating percentile rankings...")
+
+        # Define metrics to use in ranking (matching actual field names from analyzers)
+        # These correspond to: ML Ensemble, Kalman Hull, and Volume Intelligence
+        ranking_metrics = [
+            'ml_forecast',              # ML Ensemble forecast
+            'ml_confidence',            # ML Ensemble confidence
+            'mae_score',               # ML Ensemble error metric
+            'hit_rate',                # ML Ensemble directional accuracy
+            'kalman_signal_strength',  # Kalman Hull momentum strength
+            'kalman_efficiency_ratio', # Kalman Hull efficiency
+            'volume_spike_score',      # Volume Intelligence spike detection
+            'volume_correlation'       # Volume Intelligence price-volume correlation
+        ]
+
+        # Build risk category mapping (reverse lookup)
+        risk_categories_dict = {}
+        for ticker, category in risk_categories_map.items():
+            if category not in risk_categories_dict:
+                risk_categories_dict[category] = []
+            risk_categories_dict[category].append(ticker)
+
+        # Run percentile ranking
+        rankings = self.percentile_ranker.rank_etf_universe(
+            all_results,
+            risk_categories_dict,
+            ranking_metrics
+        )
+
+        # Step 3.1: Apply risk filters (CVaR, liquidity)
+        risk_filters = {
+            'cvar': {'threshold': 10},      # Bottom 10% risk removed
+            'risk_score': {'threshold': 15}  # Bottom 15% risk removed
+        }
+        rankings = self.percentile_ranker.apply_risk_filters(rankings, risk_filters)
+
+        # Add percentile scores back to analysis results
+        for risk_category, category_data in rankings.items():
+            for rank_entry in category_data.get('rankings', []):
+                ticker = rank_entry['ticker']
                 if ticker in all_results:
-                    all_results[ticker]['composite_score'] = result['composite_score']
-                    # Store component scores (NEW - Phase 1.2)
-                    all_results[ticker]['component_scores'] = result.get('components', {})
-                    all_results[ticker]['adjusted_components'] = result.get('adjusted_components', {})
-                    # Store position size recommendation
-                    all_results[ticker]['position_size'] = result.get('position_size', 0.0)
-        
-        # Step 4: Get top ETFs
-        top_opportunities = self.scoring_system.get_top_opportunities(rankings, top_n=10, min_score=0.0, focus_categories=['LOW', 'MEDIUM', 'HIGH'])
-        
-        # Convert to format expected by rest of system
+                    all_results[ticker]['composite_percentile'] = rank_entry['composite_percentile']
+                    all_results[ticker]['individual_percentiles'] = rank_entry['individual_percentiles']
+                    all_results[ticker]['num_factors'] = rank_entry['num_factors']
+
+        # Step 4: Get top 3 per risk category
         top_etfs = []
-        for opp in top_opportunities:
-            top_etfs.append({
-                'ticker': opp['ticker'],
-                'score': opp['composite_score'],
-                'category': opp['risk_category']
-            })
-        
         print(f"\n{'='*60}")
-        print("TOP 10 ETFs BY COMPOSITE SCORE")
+        print("TOP 3 ETFs BY PERCENTILE RANKING")
         print(f"{'='*60}")
-        for i, etf in enumerate(top_etfs, 1):
-            print(f"{i:2d}. {etf['ticker']:10s} | Score: {etf['score']:5.1f} | Category: {etf['category']}")
+
+        for risk_category in ['LOW', 'MEDIUM', 'HIGH']:
+            if risk_category in rankings and rankings[risk_category].get('top_3'):
+                print(f"\n{risk_category} RISK:")
+                for i, rank_entry in enumerate(rankings[risk_category]['top_3'], 1):
+                    ticker = rank_entry['ticker']
+                    percentile = rank_entry['composite_percentile']
+                    individual_percentiles = rank_entry.get('individual_percentiles', {})
+                    etf_data = all_results.get(ticker, {})
+
+                    # Define the 8 metrics in order
+                    metric_names = [
+                        'ml_forecast', 'ml_confidence', 'hit_rate', 'mae_score',
+                        'kalman_signal_strength', 'kalman_efficiency_ratio',
+                        'volume_correlation', 'volume_spike_score'
+                    ]
+
+                    metric_display_names = [
+                        'ML Forecast', 'ML Confidence', 'Hit Rate', 'MAE Score (inv)',
+                        'Kalman Signal Strength', 'Kalman Efficiency Ratio',
+                        'Volume Correlation', 'Volume Spike Score'
+                    ]
+
+                    # Collect all percentile data
+                    metric_percentiles = []
+                    for metric_name in metric_names:
+                        if metric_name in individual_percentiles:
+                            perc = individual_percentiles[metric_name]
+                            raw_val = etf_data.get(metric_name, 0.0)
+                            metric_percentiles.append((metric_name, perc, raw_val))
+
+                    # Print header with composite percentile
+                    print(f"\n  {i}. {ticker} - Composite: {percentile:.1f}th Percentile")
+
+                    # Print detailed metric breakdown table (ASCII-safe for Windows)
+                    print(f"     +{'-'*27}+{'-'*12}+{'-'*13}+")
+                    print(f"     | Metric                  | Raw Value  | Percentile  |")
+                    print(f"     +{'-'*27}+{'-'*12}+{'-'*13}+")
+
+                    for idx, (metric_name, perc, raw_val) in enumerate(metric_percentiles):
+                        display_name = metric_display_names[idx] if idx < len(metric_display_names) else metric_name
+
+                        # Format raw value based on metric type
+                        if 'forecast' in metric_name:
+                            raw_str = f"{raw_val:+.2f}%"
+                        elif metric_name in ['hit_rate', 'ml_confidence', 'volume_correlation']:
+                            raw_str = f"{raw_val:.2f}"
+                        elif 'volume_spike' in metric_name:
+                            raw_str = f"{raw_val:.1f}"
+                        else:
+                            raw_str = f"{raw_val:.2f}"
+
+                        perc_str = f"{perc:.0f}th"
+                        print(f"     | {display_name:<25} | {raw_str:>10} | {perc_str:>11} |")
+
+                    print(f"     +{'-'*27}+{'-'*12}+{'-'*13}+")
+
+                    # Calculate and display analysis
+                    sorted_metrics = sorted(metric_percentiles, key=lambda x: x[1], reverse=True)
+                    above_70_count = len([x for x in metric_percentiles if x[1] >= 70])
+
+                    # Top 3 strengths
+                    strengths = sorted_metrics[:3]
+                    strength_str = ", ".join([f"{metric_display_names[metric_names.index(m[0])]}" +
+                                             f" ({m[1]:.0f}th)" for m in strengths])
+
+                    # Bottom 2 concerns
+                    concerns = sorted_metrics[-2:]
+                    concern_str = ", ".join([f"{metric_display_names[metric_names.index(m[0])]}" +
+                                            f" ({m[1]:.0f}th)" for m in reversed(concerns)])
+
+                    # Conviction level
+                    if above_70_count >= 6:
+                        conviction = "Very High"
+                    elif above_70_count >= 5:
+                        conviction = "High"
+                    elif above_70_count >= 4:
+                        conviction = "Medium"
+                    else:
+                        conviction = "Low"
+
+                    print(f"\n     STRENGTHS: {strength_str}")
+                    print(f"     CONCERNS: {concern_str}")
+                    print(f"     CONVICTION: {conviction} ({above_70_count}/8 metrics > 70th percentile)")
+
+                    top_etfs.append({
+                        'ticker': ticker,
+                        'percentile': percentile,
+                        'category': risk_category
+                    })
         
         # Create original risk classifications map (with _risk_etfs suffix) for file saving
         original_risk_map = {}
@@ -727,12 +836,15 @@ class ETFAnalysisSystem:
             for ticker in etfs.keys():
                 original_risk_map[ticker] = risk_category
         
+        # Step 5: Export rankings to CSV (delegates to percentile_ranker)
+        self.percentile_ranker.export_rankings_to_csv(rankings, 'data/rankings_percentile.csv')
+
         return {
             'analysis_results': all_results,
             'rankings': rankings,
             'top_etfs': top_etfs,
-            'risk_classifications': original_risk_map,  # Original names for file saving
-            'risk_categories_normalized': risk_categories_map  # Normalized names for display
+            'risk_classifications': original_risk_map,
+            'risk_categories_normalized': risk_categories_map
         }
 
 

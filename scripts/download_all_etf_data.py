@@ -68,24 +68,24 @@ def main():
     historical_dir = Path(__file__).parent / 'data' / 'historical'
     historical_dir.mkdir(parents=True, exist_ok=True)
     
-    print(f"[EMOJI] Total ETFs in database: {len(all_tickers)}")
+    print(f"Total ETFs in database: {len(all_tickers)}")
     
     # Check existing
     existing_files = {f.stem.replace('_', '.') for f in historical_dir.glob('*.parquet')}
     missing = [t for t in all_tickers if t not in existing_files]
     
-    print(f"[EMOJI] Already have data for: {len(existing_files)} ETFs")
-    print(f"[EMOJI] Need to download: {len(missing)} ETFs")
+    print(f"Already have data for: {len(existing_files)} ETFs")
+    print(f"Need to download: {len(missing)} ETFs")
     
     if not missing:
-        print("\n[EMOJI] All ETFs already have data!")
+        print("\nAll ETFs already have data!")
         return
     
-    print(f"\n⏱[EMOJI]  Estimated time: ~{len(missing) * 2 // 60} minutes")
-    print(f"[EMOJI] Saving to: {historical_dir.absolute()}")
+    print(f"\n⏱ Estimated time: ~{len(missing) * 2 // 60} minutes")
+    print(f"Saving to: {historical_dir.absolute()}")
     
     print("\n" + "="*80)
-    print(f"[EMOJI] DOWNLOADING {len(missing)} ETFs (5 year history)")
+    print(f"DOWNLOADING {len(missing)} ETFs (5 year history)")
     print("="*80)
     print()
     
@@ -109,16 +109,16 @@ def main():
             start = date_col.min().strftime('%Y-%m-%d')
             end = date_col.max().strftime('%Y-%m-%d')
             
-            print(f"[EMOJI] {len(data):4d} days ({start} to {end})")
+            print(f"{len(data):4d} days ({start} to {end})")
             success += 1
         else:
-            print(f"[EMOJI] No data")
+            print(f"No data")
             failed += 1
             failed_list.append(ticker)
     
     # Summary
     print("\n" + "="*80)
-    print("[EMOJI] DOWNLOAD COMPLETE")
+    print("DOWNLOAD COMPLETE")
     print("="*80)
     print(f"   Success: {success}")
     print(f"   Failed: {failed}")
@@ -135,7 +135,7 @@ def main():
             print(f"   ... and {len(failed_list) - 10} more")
     
     print("\n" + "="*80)
-    print("[EMOJI] Ready to run full universe backtest!")
+    print("Ready to run full universe backtest!")
     print("   Run: python3 run_analysis.py")
     print("   Then select option 2 (Full universe backtest)")
     print("="*80)

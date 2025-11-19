@@ -374,5 +374,5 @@ if __name__ == "__main__":
         print(f"  Consistency: {result['trend_consistency']}")
         print(f"  Signal Strength: {result['signal_strength']:.3f}")
     
-    print("\n[EMOJI] Kalman Hull Supertrend implementation complete!")
+    print("\nKalman Hull Supertrend implementation complete!")
 

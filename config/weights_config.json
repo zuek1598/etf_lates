@@ -1,0 +1,22 @@
+{
+  "weighting_mode": "equal",
+  "description": "Factor weights for percentile ranking. 'equal' = simple average, 'custom' = weighted average",
+  "factor_weights": {
+    "ml_forecast": 1.0,
+    "ml_confidence": 1.0,
+    "hit_rate": 1.0,
+    "mae_score": 1.0,
+    "kalman_signal_strength": 1.0,
+    "kalman_efficiency_ratio": 1.0,
+    "volume_correlation": 1.0,
+    "volume_spike_score": 1.0
+  },
+  "notes": [
+    "All factors equally weighted (1.0) - simple average",
+    "To use custom weights: set weighting_mode to 'custom' and adjust factor_weights",
+    "Factors not listed will use default weight of 1.0",
+    "Remove factors from list to exclude them from ranking",
+    "Percentile calculation uses 252-day rolling history",
+    "Metrics inverted (100 - percentile): mae_score, cvar, risk_score, ulcer_index"
+  ]
+}

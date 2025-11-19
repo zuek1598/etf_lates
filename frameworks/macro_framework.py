@@ -45,7 +45,7 @@ def fetch_all_data(lookback_days: int = 365) -> Dict[str, pd.Series]:
         cpi = web.DataReader('CPIAUCSL', 'fred', start, end)['CPIAUCSL']
     except Exception as e:
         # Fallback: use yfinance treasury ETFs as proxies
-        print(f"[EMOJI]  FRED data unavailable ({e}), using ETF proxies")
+        print(f" FRED data unavailable ({e}), using ETF proxies")
         try:
             tef_data = yf.download(['^TNX', '^FVX'], start=start, end=end, progress=False)['Close']
             us10y = tef_data['^TNX'] if '^TNX' in tef_data.columns else None
@@ -349,10 +349,10 @@ def calculate_macro_framework(data: Optional[Dict] = None) -> Dict:
     """
     # Fetch data if not provided
     if data is None:
-        print("[EMOJI] Fetching market data...")
+        print("Fetching market data...")
         data = fetch_all_data()
     
-    print("[EMOJI]  Calculating macro factors...")
+    print(" Calculating macro factors...")
     
     # Calculate all four factors
     systematic_risk = calc_systematic_risk(data)
@@ -398,12 +398,12 @@ if __name__ == "__main__":
     result = calculate_macro_framework()
     
     print("\n" + "="*60)
-    print("[EMOJI] MACRO ECONOMIC CYCLE OVERLAY - RESULTS")
+    print("MACRO ECONOMIC CYCLE OVERLAY - RESULTS")
     print("="*60)
-    print(f"\n[EMOJI] MULTIPLIER: {result['multiplier']:.4f} (0.75-1.25)")
-    print(f"[EMOJI] COMPOSITE SCORE: {result['composite_score']:.2f}/100")
-    print(f"[EMOJI]  REGIME: {result['regime']}")
-    print(f"\n[EMOJI] FACTOR BREAKDOWN:")
+    print(f"\nMULTIPLIER: {result['multiplier']:.4f} (0.75-1.25)")
+    print(f"COMPOSITE SCORE: {result['composite_score']:.2f}/100")
+    print(f" REGIME: {result['regime']}")
+    print(f"\nFACTOR BREAKDOWN:")
     print(f"   • Systematic Risk:      {result['factors']['systematic_risk']:>6.2f}/100 (weight: {result['regime_weights']['systematic_risk']:.0%})")
     print(f"   • Growth Momentum:      {result['factors']['growth_momentum']:>6.2f}/100 (weight: {result['regime_weights']['growth_momentum']:.0%})")
     print(f"   • Monetary Policy:      {result['factors']['monetary_policy']:>6.2f}/100 (weight: {result['regime_weights']['monetary_policy']:.0%})")

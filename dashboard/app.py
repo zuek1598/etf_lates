@@ -46,9 +46,9 @@ loader = ETFDataLoader(data_dir='data')
 try:
     universe = loader.load_universe()
     metadata = loader.load_metadata()
-    print(f"[EMOJI] Loaded {len(universe)} ETFs from {metadata.get('analysis_date', 'N/A')}")
+    print(f"Loaded {len(universe)} ETFs from {metadata.get('analysis_date', 'N/A')}")
 except FileNotFoundError as e:
-    print(f"[EMOJI] Error: {e}")
+    print(f"Error: {e}")
     print("\nPlease run 'python etf_dashboard.py' first to generate data files.")
     exit(1)
 
@@ -74,20 +74,20 @@ def get_cached_macro_geo():
     if cache['data'] is not None and cache['timestamp'] is not None:
         age = (now - cache['timestamp']).total_seconds() / 3600  # hours
         if age < cache['cache_duration_hours']:
-            print(f"[EMOJI] Using cached macro/geo data (age: {age:.1f}h)")
+            print(f"Using cached macro/geo data (age: {age:.1f}h)")
             return cache['data']
     
     # Cache expired or doesn't exist - fetch new data
-    print("[EMOJI] Fetching fresh macro/geo data...")
+    print("Fetching fresh macro/geo data...")
     try:
         result = calculate_complete_risk_assessment()
         cache['data'] = result
         cache['timestamp'] = now
-        print(f"[EMOJI] Macro/geo data cached at {now.strftime('%H:%M:%S')}")
+        print(f"Macro/geo data cached at {now.strftime('%H:%M:%S')}")
         return result
             
     except Exception as e:
-        print(f"[EMOJI] Error fetching macro/geo data: {e}")
+        print(f"Error fetching macro/geo data: {e}")
         import traceback
         traceback.print_exc()
         # Return cached data even if expired, or None
@@ -97,7 +97,7 @@ def clear_macro_geo_cache():
     """Clear the macro/geo cache to force refresh"""
     _macro_geo_cache['data'] = None
     _macro_geo_cache['timestamp'] = None
-    print("[EMOJI]  Macro/geo cache cleared")
+    print(" Macro/geo cache cleared")
 
 # ============================================================================
 # HELPER FUNCTIONS
@@ -122,15 +122,15 @@ def get_historical_data(ticker, data_dir='data', period='1y'):
     
     if file_path.exists():
         try:
-            print(f"[EMOJI] Loading cached data for {ticker}")
+            print(f"Loading cached data for {ticker}")
             data = pd.read_parquet(file_path)
             return data
         except Exception as e:
-            print(f"[EMOJI]  Error loading cached data for {ticker}: {e}")
+            print(f" Error loading cached data for {ticker}: {e}")
     
     # Download if not cached
     try:
-        print(f"[EMOJI] Downloading data for {ticker}")
+        print(f"Downloading data for {ticker}")
         data = yf.download(ticker, period=period, progress=False)
         
         # Handle MultiIndex columns
@@ -139,7 +139,7 @@ def get_historical_data(ticker, data_dir='data', period='1y'):
         
         return data
     except Exception as e:
-        print(f"[EMOJI] Error downloading data for {ticker}: {e}")
+        print(f"Error downloading data for {ticker}: {e}")
         return pd.DataFrame()
 
 
@@ -151,7 +151,7 @@ def create_header():
     """Create dashboard header with navigation"""
     return html.Div([
         html.Div([
-            html.H1("[EMOJI] ETF Analysis Dashboard", 
+            html.H1("ETF Analysis Dashboard", 
                    style={'color': '#2c3e50', 'margin': '0', 'display': 'inline-block'}),
             html.Div([
                 html.Span(f"Total ETFs: {len(universe)}", 
@@ -164,22 +164,22 @@ def create_header():
         # Navigation tabs
         html.Div([
             dcc.Tabs(id='page-tabs', value='summary', children=[
-                dcc.Tab(label='[EMOJI] Summary', value='summary', 
+                dcc.Tab(label='Summary', value='summary', 
                        style={'fontWeight': 'bold'},
                        selected_style={'fontWeight': 'bold', 'backgroundColor': '#3498db', 'color': 'white'}),
-                dcc.Tab(label='[EMOJI] Growth Opportunities', value='growth',
+                dcc.Tab(label='Growth Opportunities', value='growth',
                        style={'fontWeight': 'bold'},
                        selected_style={'fontWeight': 'bold', 'backgroundColor': '#27ae60', 'color': 'white'}),
-                dcc.Tab(label='[EMOJI] Backtest Results', value='backtest',
+                dcc.Tab(label='Backtest Results', value='backtest',
                        style={'fontWeight': 'bold'},
                        selected_style={'fontWeight': 'bold', 'backgroundColor': '#9b59b6', 'color': 'white'}),
-                dcc.Tab(label='[EMOJI] Macro & Geo', value='macro_geo',
+                dcc.Tab(label='Macro & Geo', value='macro_geo',
                        style={'fontWeight': 'bold'},
                        selected_style={'fontWeight': 'bold', 'backgroundColor': '#3498db', 'color': 'white'}),
-                dcc.Tab(label='[EMOJI] ETF Explorer', value='explorer',
+                dcc.Tab(label='ETF Explorer', value='explorer',
                        style={'fontWeight': 'bold'},
                        selected_style={'fontWeight': 'bold', 'backgroundColor': '#3498db', 'color': 'white'}),
-                dcc.Tab(label='[EMOJI] ETF Details', value='details',
+                dcc.Tab(label='ETF Details', value='details',
                        style={'fontWeight': 'bold'},
                        selected_style={'fontWeight': 'bold', 'backgroundColor': '#3498db', 'color': 'white'})
             ])
@@ -196,7 +196,7 @@ def get_forecast_breakdown_display(etf):
     return html.Div([
         # ML Ensemble Banner
         html.Div([
-            html.H4("[EMOJI] ML Ensemble Forecast", 
+            html.H4("ML Ensemble Forecast", 
                    style={'color': '#9b59b6', 'margin': '0', 'fontSize': '24px', 'textAlign': 'center'}),
             html.P("Random Forest + Ridge Regression", 
                    style={'color': '#7f8c8d', 'fontSize': '14px', 'margin': '5px 0', 'textAlign': 'center'})
@@ -249,7 +249,7 @@ def get_forecast_breakdown_display(etf):
             
             html.Div([
                 html.P([
-                    html.Strong("[EMOJI] No Bias Correction Applied:"),
+                    html.Strong("No Bias Correction Applied:"),
                     html.Br(),
                     "This is the RAW ML output. The modified system does NOT apply bias correction. ",
                     "Use the confidence score to assess reliability."
@@ -298,21 +298,21 @@ def get_mae_quality_flag(mae_score, hit_rate, confidence):
     
     # Handle NaN values
     if pd.isna(mae_score) or pd.isna(hit_rate) or pd.isna(confidence):
-        return "[EMOJI] UNRELIABLE", "#e74c3c"
+        return "UNRELIABLE", "#e74c3c"
     
     # Quality assessment logic (aligned with MAE thresholds)
     if mae_score >= 25 or confidence < 0.15:
-        return "[EMOJI] UNRELIABLE", "#e74c3c"
+        return "UNRELIABLE", "#e74c3c"
     elif mae_score >= 12 or (hit_rate < 0.50 and confidence < 0.40):
-        return "[EMOJI] POOR", "#e67e22"
+        return "POOR", "#e67e22"
     elif mae_score < 3 and hit_rate > 0.60 and confidence > 0.70:
-        return "[EMOJI] EXCELLENT", "#27ae60"
+        return "EXCELLENT", "#27ae60"
     elif mae_score < 6 and confidence > 0.50:
-        return "[EMOJI] GOOD", "#2ecc71"
+        return "GOOD", "#2ecc71"
     elif mae_score < 12:
         return "~ FAIR", "#f39c12"
     else:
-        return "[EMOJI] POOR", "#e67e22"
+        return "POOR", "#e67e22"
 
 
 def load_walk_forward_validation():
@@ -334,16 +334,16 @@ def load_walk_forward_validation():
 def get_walk_forward_quality_flag(hit_rate, mae):
     """Determine quality flag based on walk-forward validation metrics"""
     if pd.isna(hit_rate) or pd.isna(mae):
-        return "[EMOJI] NOT TESTED", "#95a5a6"
+        return "NOT TESTED", "#95a5a6"
     
     if hit_rate >= 0.65 and mae < 8:
-        return "[EMOJI] EXCELLENT", "#27ae60"
+        return "EXCELLENT", "#27ae60"
     elif hit_rate >= 0.55 and mae < 12:
-        return "[EMOJI] GOOD", "#2ecc71"
+        return "GOOD", "#2ecc71"
     elif hit_rate >= 0.50 and mae < 15:
-        return "[EMOJI] FAIR", "#f39c12"
+        return "FAIR", "#f39c12"
     elif hit_rate < 0.45:
-        return "[EMOJI] POOR", "#e74c3c"
+        return "POOR", "#e74c3c"
     else:
         return "~ FAIR", "#f39c12"
 
@@ -376,7 +376,7 @@ def get_mae_quality_display(etf):
     return html.Div([
         # Header
         html.Div([
-            html.H4("[EMOJI] Walk-Forward Validation Results", 
+            html.H4("Walk-Forward Validation Results", 
                    style={'color': '#2c3e50', 'marginBottom': '5px', 'textAlign': 'center', 'fontSize': '20px'}),
             html.P("Out-of-sample testing across 5 validation windows (252-day train, 60-day test)", 
                    style={'color': '#7f8c8d', 'fontSize': '13px', 'margin': '0', 'textAlign': 'center', 'fontStyle': 'italic'})
@@ -420,7 +420,7 @@ def get_mae_quality_display(etf):
         
         # Explanation
         html.Div([
-            html.P([html.Strong("[EMOJI] What This Means:")], 
+            html.P([html.Strong("What This Means:")], 
                    style={'fontSize': '16px', 'color': '#2c3e50', 'marginBottom': '10px', 'fontWeight': 'bold'}),
             html.P([
                 "• ",
@@ -467,7 +467,7 @@ def create_mae_summary():
     # Check if MAE fields exist
     if 'mae_score' not in universe.columns or 'hit_rate' not in universe.columns:
         return html.Div([
-            html.H2("[EMOJI] Forecast Quality (MAE Analysis)", style={'color': '#2c3e50', 'marginBottom': '20px'}),
+            html.H2("Forecast Quality (MAE Analysis)", style={'color': '#2c3e50', 'marginBottom': '20px'}),
             html.P("MAE validation data not available. Re-run analysis to generate validation metrics.", 
                    style={'color': '#7f8c8d', 'fontSize': '16px'})
         ])
@@ -555,13 +555,13 @@ def create_mae_summary():
             html.Div([
                 html.Div([
                     html.Div([
-                        html.H4("[EMOJI] Excellent (<3%)", style={'color': '#27ae60'}),
+                        html.H4("Excellent (<3%)", style={'color': '#27ae60'}),
                         html.P(f"{excellent} ETFs ({excellent/len(mae_scores)*100:.1f}%)",
                               style={'fontSize': '20px', 'color': '#2c3e50'})
                     ], style={'padding': '15px', 'backgroundColor': '#d4edda', 'borderRadius': '8px', 'marginBottom': '10px'}),
                     
                     html.Div([
-                        html.H4("[EMOJI] Good (3-6%)", style={'color': '#2ecc71'}),
+                        html.H4("Good (3-6%)", style={'color': '#2ecc71'}),
                         html.P(f"{good} ETFs ({good/len(mae_scores)*100:.1f}%)",
                               style={'fontSize': '20px', 'color': '#2c3e50'})
                     ], style={'padding': '15px', 'backgroundColor': '#d5f4e6', 'borderRadius': '8px', 'marginBottom': '10px'}),
@@ -573,13 +573,13 @@ def create_mae_summary():
                     ], style={'padding': '15px', 'backgroundColor': '#fff3cd', 'borderRadius': '8px', 'marginBottom': '10px'}),
                     
                     html.Div([
-                        html.H4("[EMOJI] Poor (12-25%)", style={'color': '#e67e22'}),
+                        html.H4("Poor (12-25%)", style={'color': '#e67e22'}),
                         html.P(f"{poor} ETFs ({poor/len(mae_scores)*100:.1f}%)",
                               style={'fontSize': '20px', 'color': '#2c3e50'})
                     ], style={'padding': '15px', 'backgroundColor': '#ffe6cc', 'borderRadius': '8px', 'marginBottom': '10px'}),
                     
                     html.Div([
-                        html.H4("[EMOJI] Very Poor (≥25%)", style={'color': '#e74c3c'}),
+                        html.H4("Very Poor (≥25%)", style={'color': '#e74c3c'}),
                         html.P(f"{very_poor} ETFs ({very_poor/len(mae_scores)*100:.1f}%)",
                               style={'fontSize': '20px', 'color': '#2c3e50'})
                     ], style={'padding': '15px', 'backgroundColor': '#f8d7da', 'borderRadius': '8px'})
@@ -596,12 +596,12 @@ def create_macro_geo_page():
     
     if result is None:
         return html.Div([
-            html.H2("[EMOJI] Unable to Load Real-Time Analysis", style={'color': '#e74c3c'}),
+            html.H2("Unable to Load Real-Time Analysis", style={'color': '#e74c3c'}),
             html.P("The Macro & Geopolitical frameworks require real-time data access.", 
                    style={'color': '#7f8c8d'}),
             html.P("This page shows market-wide risk analysis and is independent of individual ETF analysis.", 
                    style={'color': '#7f8c8d', 'marginTop': '10px'}),
-            html.Button("[EMOJI] Retry", id='retry-macro-geo', n_clicks=0, 
+            html.Button("Retry", id='retry-macro-geo', n_clicks=0, 
                        style={'marginTop': '20px', 'padding': '10px 20px', 'fontSize': '16px'})
         ])
     
@@ -621,7 +621,7 @@ def create_macro_geo_page():
     return html.Div([
         # Page Title
         html.Div([
-            html.H1("[EMOJI] Macro Economic & Geopolitical Risk Analysis", 
+            html.H1("Macro Economic & Geopolitical Risk Analysis", 
                    style={'color': '#2c3e50', 'textAlign': 'center', 'marginBottom': '10px'}),
             html.P("Independent frameworks analyzing market conditions and tail risks",
                   style={'color': '#7f8c8d', 'textAlign': 'center', 'fontSize': '16px', 'marginBottom': '10px'})
@@ -630,14 +630,14 @@ def create_macro_geo_page():
         # Cache Info Banner
         html.Div([
             html.Div([
-                html.Span(f"[EMOJI] Data Age: {cache_age:.0f} minutes", 
+                html.Span(f"Data Age: {cache_age:.0f} minutes", 
                          style={'color': '#27ae60' if cache_age < 60 else '#e67e22' if cache_age < 180 else '#e74c3c', 
                                'fontWeight': 'bold', 'marginRight': '20px'}),
                 html.Span(f"⏰ Last Updated: {cache_time.strftime('%H:%M:%S') if cache_time else 'N/A'}", 
                          style={'color': '#7f8c8d', 'marginRight': '20px'}),
-                html.Span(f"[EMOJI] Cache Duration: {_macro_geo_cache['cache_duration_hours']}h", 
+                html.Span(f"Cache Duration: {_macro_geo_cache['cache_duration_hours']}h", 
                          style={'color': '#7f8c8d', 'marginRight': '20px'}),
-                html.Button("[EMOJI] Refresh Now", id='refresh-macro-geo', n_clicks=0,
+                html.Button("Refresh Now", id='refresh-macro-geo', n_clicks=0,
                            style={'padding': '5px 15px', 'fontSize': '14px', 'cursor': 'pointer',
                                  'backgroundColor': '#3498db', 'color': 'white', 'border': 'none',
                                  'borderRadius': '5px', 'fontWeight': 'bold'})
@@ -649,7 +649,7 @@ def create_macro_geo_page():
         # MACRO ECONOMIC CYCLE OVERLAY
         # ============================================
         html.Div([
-            html.H2("[EMOJI] Macro Economic Cycle Overlay", 
+            html.H2("Macro Economic Cycle Overlay", 
                    style={'color': '#3498db', 'borderBottom': '3px solid #3498db', 'paddingBottom': '10px', 'marginBottom': '20px'}),
             
             # Overall Macro Summary Cards
@@ -689,7 +689,7 @@ def create_macro_geo_page():
             
             # Regime Interpretation
             html.Div([
-                html.H4("[EMOJI] What This Means:", style={'color': '#2c3e50', 'marginBottom': '10px'}),
+                html.H4("What This Means:", style={'color': '#2c3e50', 'marginBottom': '10px'}),
                 html.P([
                     html.Strong(f"{macro['regime']}: "),
                     "Focus on " + ("defensive assets, reduce cyclicals" if macro['regime'] == 'CRISIS' 
@@ -704,13 +704,13 @@ def create_macro_geo_page():
             ], style={'padding': '20px', 'backgroundColor': '#ecf0f1', 'borderRadius': '8px', 'marginBottom': '30px'}),
             
             # Factor Breakdown
-            html.H3("[EMOJI] Factor Breakdown", style={'color': '#2c3e50', 'marginBottom': '15px'}),
+            html.H3("Factor Breakdown", style={'color': '#2c3e50', 'marginBottom': '15px'}),
             
             html.Div([
                 # Factor 1: Systematic Risk
                 html.Div([
                     html.Div([
-                        html.H4("[EMOJI] Systematic Risk", style={'color': '#e74c3c', 'fontSize': '18px', 'margin': '0'}),
+                        html.H4("Systematic Risk", style={'color': '#e74c3c', 'fontSize': '18px', 'margin': '0'}),
                         html.P(f"{macro['factors']['systematic_risk']:.1f}/100", 
                               style={'fontSize': '36px', 'color': '#e74c3c', 'margin': '10px 0', 'fontWeight': 'bold'}),
                         html.P(f"Weight: {macro['regime_weights']['systematic_risk']:.0%}", 
@@ -725,7 +725,7 @@ def create_macro_geo_page():
                 # Factor 2: Growth Momentum
                 html.Div([
                     html.Div([
-                        html.H4("[EMOJI] Growth Momentum", style={'color': '#27ae60', 'fontSize': '18px', 'margin': '0'}),
+                        html.H4("Growth Momentum", style={'color': '#27ae60', 'fontSize': '18px', 'margin': '0'}),
                         html.P(f"{macro['factors']['growth_momentum']:.1f}/100", 
                               style={'fontSize': '36px', 'color': '#27ae60', 'margin': '10px 0', 'fontWeight': 'bold'}),
                         html.P(f"Weight: {macro['regime_weights']['growth_momentum']:.0%}", 
@@ -740,7 +740,7 @@ def create_macro_geo_page():
                 # Factor 3: Monetary Policy
                 html.Div([
                     html.Div([
-                        html.H4("[EMOJI] Monetary Policy", style={'color': '#9b59b6', 'fontSize': '18px', 'margin': '0'}),
+                        html.H4("Monetary Policy", style={'color': '#9b59b6', 'fontSize': '18px', 'margin': '0'}),
                         html.P(f"{macro['factors']['monetary_policy']:.1f}/100", 
                               style={'fontSize': '36px', 'color': '#9b59b6', 'margin': '10px 0', 'fontWeight': 'bold'}),
                         html.P(f"Weight: {macro['regime_weights']['monetary_policy']:.0%}", 
@@ -755,7 +755,7 @@ def create_macro_geo_page():
                 # Factor 4: Regime Classification
                 html.Div([
                     html.Div([
-                        html.H4("[EMOJI] Regime Class", style={'color': '#3498db', 'fontSize': '18px', 'margin': '0'}),
+                        html.H4("Regime Class", style={'color': '#3498db', 'fontSize': '18px', 'margin': '0'}),
                         html.P(f"{macro['factors']['regime_classification']:.1f}/100", 
                               style={'fontSize': '36px', 'color': '#3498db', 'margin': '10px 0', 'fontWeight': 'bold'}),
                         html.P(f"Weight: {macro['regime_weights']['regime']:.0%}", 
@@ -804,7 +804,7 @@ def create_macro_geo_page():
         # GEOPOLITICAL RISK OVERLAY
         # ============================================
         html.Div([
-            html.H2("[EMOJI] Geopolitical Risk Overlay", 
+            html.H2("Geopolitical Risk Overlay", 
                    style={'color': '#e74c3c', 'borderBottom': '3px solid #e74c3c', 'paddingBottom': '10px', 'marginBottom': '20px'}),
             
             # Overall Geo Summary Cards
@@ -836,7 +836,7 @@ def create_macro_geo_page():
             
             # Risk Level Interpretation
             html.Div([
-                html.H4("[EMOJI] What This Means:", style={'color': '#2c3e50', 'marginBottom': '10px'}),
+                html.H4("What This Means:", style={'color': '#2c3e50', 'marginBottom': '10px'}),
                 html.P([
                     html.Strong(f"{geo['risk_level']}: "),
                     (f"Normal allocation - minimal tail risk concerns" if geo['risk_level'] == 'LOW'
@@ -851,13 +851,13 @@ def create_macro_geo_page():
             ], style={'padding': '20px', 'backgroundColor': '#ecf0f1', 'borderRadius': '8px', 'marginBottom': '30px'}),
             
             # Pillar Breakdown
-            html.H3("[EMOJI] Pillar Breakdown", style={'color': '#2c3e50', 'marginBottom': '15px'}),
+            html.H3("Pillar Breakdown", style={'color': '#2c3e50', 'marginBottom': '15px'}),
             
             html.Div([
                 # Pillar 1: US-China-Taiwan
                 html.Div([
                     html.Div([
-                        html.H4("[EMOJI] US-China-Taiwan", style={'color': '#e74c3c', 'fontSize': '18px', 'margin': '0'}),
+                        html.H4("US-China-Taiwan", style={'color': '#e74c3c', 'fontSize': '18px', 'margin': '0'}),
                         html.P(f"{geo['pillars']['us_china_taiwan']:.1f}/100", 
                               style={'fontSize': '36px', 'color': '#e74c3c', 'margin': '10px 0', 'fontWeight': 'bold'}),
                         html.P("Weight: 30%", style={'color': '#7f8c8d', 'fontSize': '14px'}),
@@ -871,7 +871,7 @@ def create_macro_geo_page():
                 # Pillar 2: Military Conflict
                 html.Div([
                     html.Div([
-                        html.H4("[EMOJI] Military Conflict", style={'color': '#c0392b', 'fontSize': '18px', 'margin': '0'}),
+                        html.H4("Military Conflict", style={'color': '#c0392b', 'fontSize': '18px', 'margin': '0'}),
                         html.P(f"{geo['pillars']['military_conflict']:.1f}/100", 
                               style={'fontSize': '36px', 'color': '#c0392b', 'margin': '10px 0', 'fontWeight': 'bold'}),
                         html.P("Weight: 25%", style={'color': '#7f8c8d', 'fontSize': '14px'}),
@@ -885,7 +885,7 @@ def create_macro_geo_page():
                 # Pillar 3: Trade War
                 html.Div([
                     html.Div([
-                        html.H4("[EMOJI] Trade War", style={'color': '#d35400', 'fontSize': '18px', 'margin': '0'}),
+                        html.H4("Trade War", style={'color': '#d35400', 'fontSize': '18px', 'margin': '0'}),
                         html.P(f"{geo['pillars']['trade_war']:.1f}/100", 
                               style={'fontSize': '36px', 'color': '#d35400', 'margin': '10px 0', 'fontWeight': 'bold'}),
                         html.P("Weight: 20%", style={'color': '#7f8c8d', 'fontSize': '14px'}),
@@ -899,7 +899,7 @@ def create_macro_geo_page():
                 # Pillar 4: Financial Stress
                 html.Div([
                     html.Div([
-                        html.H4("[EMOJI] Financial Stress", style={'color': '#8e44ad', 'fontSize': '18px', 'margin': '0'}),
+                        html.H4("Financial Stress", style={'color': '#8e44ad', 'fontSize': '18px', 'margin': '0'}),
                         html.P(f"{geo['pillars']['financial_stress']:.1f}/100", 
                               style={'fontSize': '36px', 'color': '#8e44ad', 'margin': '10px 0', 'fontWeight': 'bold'}),
                         html.P("Weight: 15%", style={'color': '#7f8c8d', 'fontSize': '14px'}),
@@ -913,7 +913,7 @@ def create_macro_geo_page():
                 # Pillar 5: Energy Security
                 html.Div([
                     html.Div([
-                        html.H4("[EMOJI] Energy Security", style={'color': '#16a085', 'fontSize': '18px', 'margin': '0'}),
+                        html.H4("Energy Security", style={'color': '#16a085', 'fontSize': '18px', 'margin': '0'}),
                         html.P(f"{geo['pillars']['energy_security']:.1f}/100", 
                               style={'fontSize': '36px', 'color': '#16a085', 'margin': '10px 0', 'fontWeight': 'bold'}),
                         html.P("Weight: 10%", style={'color': '#7f8c8d', 'fontSize': '14px'}),
@@ -962,7 +962,7 @@ def create_macro_geo_page():
         # FRAMEWORK INDEPENDENCE
         # ============================================
         html.Div([
-            html.H3("[EMOJI] Framework Independence", style={'color': '#2c3e50', 'marginTop': '40px', 'marginBottom': '15px'}),
+            html.H3("Framework Independence", style={'color': '#2c3e50', 'marginTop': '40px', 'marginBottom': '15px'}),
             html.P([
                 html.Strong("These frameworks use DIFFERENT data sources: "),
                 "Macro uses economic indicators (credit spreads, PMI, inflation, Fed policy), while Geopolitical uses ",
@@ -987,7 +987,7 @@ def create_summary_page():
     return html.Div([
         # Key Metrics Cards
         html.Div([
-            html.H2("[EMOJI] Key Metrics", style={'color': '#2c3e50', 'marginBottom': '20px'}),
+            html.H2("Key Metrics", style={'color': '#2c3e50', 'marginBottom': '20px'}),
             
             html.Div([
                 # Card 1: Total ETFs
@@ -1033,7 +1033,7 @@ def create_summary_page():
         
         # Risk Distribution
         html.Div([
-            html.H2("[EMOJI] Risk Distribution", style={'color': '#2c3e50', 'marginBottom': '20px'}),
+            html.H2("Risk Distribution", style={'color': '#2c3e50', 'marginBottom': '20px'}),
             
             html.Div([
                 # Risk breakdown pie chart
@@ -1065,7 +1065,7 @@ def create_summary_page():
                         ], style={'padding': '20px', 'backgroundColor': '#fff3cd', 'borderRadius': '8px', 'marginBottom': '15px'}),
                         
                         html.Div([
-                            html.H4("[EMOJI] High Risk", style={'color': '#e74c3c'}),
+                            html.H4("High Risk", style={'color': '#e74c3c'}),
                             html.P(f"{risk_breakdown.get('HIGH', 0)} ETFs ({risk_breakdown.get('HIGH', 0)/len(universe)*100:.1f}%)",
                                   style={'fontSize': '20px', 'color': '#2c3e50'})
                         ], style={'padding': '20px', 'backgroundColor': '#f8d7da', 'borderRadius': '8px'})
@@ -1076,25 +1076,25 @@ def create_summary_page():
         
         # ML Forecast Summary
         html.Div([
-            html.H2("[EMOJI] ML Forecast Summary (60-Day)", style={'color': '#2c3e50', 'marginBottom': '20px'}),
+            html.H2("ML Forecast Summary (60-Day)", style={'color': '#2c3e50', 'marginBottom': '20px'}),
             
             html.Div([
                 html.Div([
-                    html.H4("[EMOJI] Positive Forecasts", style={'color': '#2ecc71', 'margin': '0'}),
+                    html.H4("Positive Forecasts", style={'color': '#2ecc71', 'margin': '0'}),
                     html.P(f"{positive_forecast} ETFs ({positive_forecast/len(universe)*100:.1f}%)",
                           style={'fontSize': '24px', 'color': '#2c3e50', 'margin': '10px 0'})
                 ], style={'flex': '1', 'padding': '20px', 'backgroundColor': '#d4edda', 
                          'borderRadius': '8px', 'margin': '10px'}),
                 
                 html.Div([
-                    html.H4("[EMOJI] Negative Forecasts", style={'color': '#e74c3c', 'margin': '0'}),
+                    html.H4("Negative Forecasts", style={'color': '#e74c3c', 'margin': '0'}),
                     html.P(f"{negative_forecast} ETFs ({negative_forecast/len(universe)*100:.1f}%)",
                           style={'fontSize': '24px', 'color': '#2c3e50', 'margin': '10px 0'})
                 ], style={'flex': '1', 'padding': '20px', 'backgroundColor': '#f8d7da', 
                          'borderRadius': '8px', 'margin': '10px'}),
                 
                 html.Div([
-                    html.H4("[EMOJI] Average Forecast", style={'color': '#3498db', 'margin': '0'}),
+                    html.H4("Average Forecast", style={'color': '#3498db', 'margin': '0'}),
                     html.P(f"{avg_forecast:+.2f}%",
                           style={'fontSize': '24px', 'color': '#2c3e50', 'margin': '10px 0'})
                 ], style={'flex': '1', 'padding': '20px', 'backgroundColor': '#d6eaf8', 
@@ -1104,7 +1104,7 @@ def create_summary_page():
         
         # MAE Analysis Section
         html.Div([
-            html.H2("[EMOJI] Forecast Quality Analysis (MAE)", style={'color': '#2c3e50', 'marginBottom': '20px'}),
+            html.H2("Forecast Quality Analysis (MAE)", style={'color': '#2c3e50', 'marginBottom': '20px'}),
             
             # MAE statistics
             create_mae_summary()
@@ -1112,7 +1112,7 @@ def create_summary_page():
         
         # Top 10 ETFs Overall
         html.Div([
-            html.H2("[EMOJI] Top 10 ETFs Overall", style={'color': '#2c3e50', 'marginBottom': '20px'}),
+            html.H2("Top 10 ETFs Overall", style={'color': '#2c3e50', 'marginBottom': '20px'}),
             
             html.Div([
                 create_top_etfs_table(universe.nlargest(10, 'composite_score'))
@@ -1126,7 +1126,7 @@ def create_explorer_page():
     return html.Div([
         # Search and Filters Section
         html.Div([
-            html.H2("[EMOJI] ETF Explorer", style={'color': '#2c3e50', 'marginBottom': '20px'}),
+            html.H2("ETF Explorer", style={'color': '#2c3e50', 'marginBottom': '20px'}),
             
             # Search by ticker
             html.Div([
@@ -1151,7 +1151,7 @@ def create_explorer_page():
                             {'label': 'All Risk Levels', 'value': 'All'},
                             {'label': '🟢 Low Risk', 'value': 'LOW'},
                             {'label': '🟠 Medium Risk', 'value': 'MEDIUM'},
-                            {'label': '[EMOJI] High Risk', 'value': 'HIGH'}
+                            {'label': 'High Risk', 'value': 'HIGH'}
                         ],
                         value='All',
                         clearable=False,
@@ -1180,9 +1180,9 @@ def create_explorer_page():
                         id='forecast-filter',
                         options=[
                             {'label': 'All Forecasts', 'value': 'All'},
-                            {'label': '[EMOJI] Positive (> 0%)', 'value': 'Positive'},
-                            {'label': '[EMOJI] Negative (< 0%)', 'value': 'Negative'},
-                            {'label': '[EMOJI] Strong Positive (> 5%)', 'value': 'StrongPositive'}
+                            {'label': 'Positive (> 0%)', 'value': 'Positive'},
+                            {'label': 'Negative (< 0%)', 'value': 'Negative'},
+                            {'label': 'Strong Positive (> 5%)', 'value': 'StrongPositive'}
                         ],
                         value='All',
                         clearable=False,
@@ -1217,7 +1217,7 @@ def create_explorer_page():
 def create_details_page():
     """Create ETF details page with key metrics and charts"""
     return html.Div([
-        html.H2("[EMOJI] ETF Details", style={'color': '#2c3e50', 'marginBottom': '20px'}),
+        html.H2("ETF Details", style={'color': '#2c3e50', 'marginBottom': '20px'}),
         
         # Ticker selector
         html.Div([
@@ -1330,7 +1330,7 @@ def refresh_macro_geo_data(n_clicks):
     """Refresh macro/geo data when button is clicked"""
     if n_clicks > 0:
         clear_macro_geo_cache()
-        print(f"[EMOJI] User requested cache refresh (click #{n_clicks})")
+        print(f"User requested cache refresh (click #{n_clicks})")
         return create_macro_geo_page()
     return dash.no_update
 
@@ -1447,7 +1447,7 @@ def update_etf_table(search_term, risk_filter, score_range, forecast_filter, vol
         filter_action='native'
     )
     
-    results_text = f"[EMOJI] Showing {len(filtered_df)} of {len(universe)} ETFs"
+    results_text = f"Showing {len(filtered_df)} of {len(universe)} ETFs"
     
     return table, results_text
 
@@ -1523,7 +1523,7 @@ def update_etf_details(ticker):
             # Row 2.5 - Risk Component (30/30/20/20 weights)
             html.Div([
                 html.Div([
-                    html.H4("[EMOJI] Risk Component Analysis", style={'color': '#2c3e50', 'fontSize': '16px', 'margin': '10px 0 5px 0', 'fontWeight': 'bold'}),
+                    html.H4("Risk Component Analysis", style={'color': '#2c3e50', 'fontSize': '16px', 'margin': '10px 0 5px 0', 'fontWeight': 'bold'}),
                 ], style={'width': '100%'})
             ]),
             html.Div([
@@ -1565,13 +1565,13 @@ def update_etf_details(ticker):
             # Row 3 - ML Ensemble & Technical
             html.Div([
                 html.Div([
-                    html.H4("[EMOJI] Kalman Hull Supertrend", style={'color': '#2c3e50', 'fontSize': '16px', 'margin': '10px 0 5px 0', 'fontWeight': 'bold'}),
+                    html.H4("Kalman Hull Supertrend", style={'color': '#2c3e50', 'fontSize': '16px', 'margin': '10px 0 5px 0', 'fontWeight': 'bold'}),
                 ], style={'width': '100%'})
             ]),
             html.Div([
                 html.Div([
                     html.H4("Trend Direction", style={'color': '#7f8c8d', 'fontSize': '14px', 'margin': '0'}),
-                    html.P("🟢 BULLISH" if etf.get('kalman_trend', 0) > 0 else "[EMOJI] BEARISH" if etf.get('kalman_trend', 0) < 0 else "[EMOJI] NEUTRAL",
+                    html.P("🟢 BULLISH" if etf.get('kalman_trend', 0) > 0 else "BEARISH" if etf.get('kalman_trend', 0) < 0 else "NEUTRAL",
                           style={'fontSize': '24px', 'color': '#27ae60' if etf.get('kalman_trend', 0) > 0 else '#e74c3c' if etf.get('kalman_trend', 0) < 0 else '#95a5a6',
                                 'margin': '5px 0', 'fontWeight': 'bold'}),
                     html.P(f"Signal: {etf.get('kalman_trend', 0)}", style={'fontSize': '11px', 'color': '#95a5a6', 'margin': '0'})
@@ -1596,7 +1596,7 @@ def update_etf_details(ticker):
             # Row 3.5 - Volume Intelligence
             html.Div([
                 html.Div([
-                    html.H4("[EMOJI] Volume Intelligence", style={'color': '#2c3e50', 'fontSize': '16px', 'margin': '10px 0 5px 0', 'fontWeight': 'bold'}),
+                    html.H4("Volume Intelligence", style={'color': '#2c3e50', 'fontSize': '16px', 'margin': '10px 0 5px 0', 'fontWeight': 'bold'}),
                 ], style={'width': '100%'})
             ]),
             html.Div([
@@ -1628,7 +1628,7 @@ def update_etf_details(ticker):
             # Liquidity Metrics
             html.Div([
                 html.Div([
-                    html.H4("[EMOJI] Liquidity Metrics", style={'color': '#2c3e50', 'fontSize': '16px', 'margin': '10px 0 5px 0', 'fontWeight': 'bold'}),
+                    html.H4("Liquidity Metrics", style={'color': '#2c3e50', 'fontSize': '16px', 'margin': '10px 0 5px 0', 'fontWeight': 'bold'}),
                 ], style={'width': '100%'})
             ]),
             html.Div([
@@ -1661,7 +1661,7 @@ def update_etf_details(ticker):
                 
                 html.Div([
                     html.H4("Liquidity Status", style={'color': '#7f8c8d', 'fontSize': '14px', 'margin': '0'}),
-                    html.P("[EMOJI] High" if (etf.get('avg_daily_volume', 0) * etf.get('latest_price', 0)) > 5e6 else "[EMOJI] Medium" if (etf.get('avg_daily_volume', 0) * etf.get('latest_price', 0)) > 1e6 else "[EMOJI] Low", 
+                    html.P("High" if (etf.get('avg_daily_volume', 0) * etf.get('latest_price', 0)) > 5e6 else "Medium" if (etf.get('avg_daily_volume', 0) * etf.get('latest_price', 0)) > 1e6 else "Low", 
                           style={'fontSize': '24px', 'color': '#2c3e50', 'margin': '5px 0', 'fontWeight': 'bold'}),
                     html.P("Overall assessment", style={'fontSize': '11px', 'color': '#95a5a6', 'margin': '0'})
                 ], style={'flex': '1', 'padding': '12px', 'backgroundColor': '#e8f8f5', 'borderRadius': '8px', 'margin': '5px'})
@@ -1670,14 +1670,14 @@ def update_etf_details(ticker):
         
         # Forecast Breakdown Section
         html.Div([
-            html.H3("[EMOJI] Forecast Breakdown", style={'color': '#2c3e50', 'marginBottom': '15px'}),
+            html.H3("Forecast Breakdown", style={'color': '#2c3e50', 'marginBottom': '15px'}),
             
             get_forecast_breakdown_display(etf)
         ], style={'marginBottom': '30px', 'padding': '20px', 'backgroundColor': '#e8f4f8', 'borderRadius': '8px'}),
         
         # MAE Analysis Section
         html.Div([
-            html.H3("[EMOJI] Forecast Quality (MAE Analysis)", style={'color': '#2c3e50', 'marginBottom': '15px'}),
+            html.H3("Forecast Quality (MAE Analysis)", style={'color': '#2c3e50', 'marginBottom': '15px'}),
             
             # Get MAE quality flag
             html.Div(id=f'mae-quality-{ticker}', children=[
@@ -1765,13 +1765,13 @@ def update_etf_details(ticker):
         )
         
         chart_section = html.Div([
-            html.H3("[EMOJI] Historical Data", style={'color': '#2c3e50', 'marginTop': '30px', 'marginBottom': '20px'}),
+            html.H3("Historical Data", style={'color': '#2c3e50', 'marginTop': '30px', 'marginBottom': '20px'}),
             dcc.Graph(figure=fig),
             dcc.Graph(figure=fig_volume)
         ])
     else:
         chart_section = html.Div([
-            html.H3("[EMOJI] Historical Data", style={'color': '#2c3e50', 'marginTop': '30px', 'marginBottom': '20px'}),
+            html.H3("Historical Data", style={'color': '#2c3e50', 'marginTop': '30px', 'marginBottom': '20px'}),
             html.P("Unable to load historical price data", style={'color': '#7f8c8d', 'fontSize': '16px'})
         ])
     
@@ -1784,13 +1784,13 @@ def update_etf_details(ticker):
 
 if __name__ == '__main__':
     print("\n" + "="*60)
-    print("[EMOJI] Starting Enhanced ETF Dashboard...")
+    print("Starting Enhanced ETF Dashboard...")
     print("="*60)
-    print(f"[EMOJI] Loaded {len(universe)} ETFs")
-    print(f"[EMOJI] Analysis Date: {metadata.get('analysis_date', 'N/A')[:10]}")
-    print(f"⏱[EMOJI]  Processing Time: {metadata.get('processing_time', 0):.1f}s")
+    print(f"Loaded {len(universe)} ETFs")
+    print(f"Analysis Date: {metadata.get('analysis_date', 'N/A')[:10]}")
+    print(f"⏱ Processing Time: {metadata.get('processing_time', 0):.1f}s")
     print("="*60)
-    print("\n[EMOJI] Dashboard running at: http://127.0.0.1:8051/")
+    print("\nDashboard running at: http://127.0.0.1:8051/")
     print("Press Ctrl+C to stop\n")
     
     app.run(debug=True, port=8051)

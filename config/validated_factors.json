@@ -1,0 +1,362 @@
+{
+  "validation_date": "2025-11-19T16:41:35.663798",
+  "forward_period_days": 20,
+  "ic_results": {
+    "ml_forecast": {
+      "ic": null,
+      "p_value": null,
+      "status": "SKIPPED",
+      "reason": "Not applicable to cross-sectional factors"
+    },
+    "ml_confidence": {
+      "ic": null,
+      "p_value": null,
+      "status": "SKIPPED",
+      "reason": "Not applicable to cross-sectional factors"
+    },
+    "hit_rate": {
+      "ic": null,
+      "p_value": null,
+      "status": "SKIPPED",
+      "reason": "Not applicable to cross-sectional factors"
+    },
+    "mae_score": {
+      "ic": null,
+      "p_value": null,
+      "status": "SKIPPED",
+      "reason": "Not applicable to cross-sectional factors"
+    },
+    "kalman_signal_strength": {
+      "ic": null,
+      "p_value": null,
+      "status": "SKIPPED",
+      "reason": "Not applicable to cross-sectional factors"
+    },
+    "kalman_efficiency_ratio": {
+      "ic": null,
+      "p_value": null,
+      "status": "SKIPPED",
+      "reason": "Not applicable to cross-sectional factors"
+    },
+    "volume_correlation": {
+      "ic": null,
+      "p_value": null,
+      "status": "SKIPPED",
+      "reason": "Not applicable to cross-sectional factors"
+    },
+    "volume_spike_score": {
+      "ic": null,
+      "p_value": null,
+      "status": "SKIPPED",
+      "reason": "Not applicable to cross-sectional factors"
+    }
+  },
+  "hit_rate_results": {
+    "ml_forecast": {
+      "hit_rate": 0.6994823442410797,
+      "correct": 15134,
+      "total": 21636,
+      "status": "GREAT",
+      "reason": "Hit rate 69.9% (great directional accuracy)"
+    },
+    "ml_confidence": {
+      "hit_rate": 0.7164910334627472,
+      "correct": 15502,
+      "total": 21636,
+      "status": "GREAT",
+      "reason": "Hit rate 71.6% (great directional accuracy)"
+    },
+    "hit_rate": {
+      "hit_rate": 0.4595417633410673,
+      "correct": 9507,
+      "total": 20688,
+      "status": "REJECTED",
+      "reason": "Hit rate 46.0% below threshold 52.0%"
+    },
+    "mae_score": {
+      "hit_rate": 0.7270398298530549,
+      "correct": 15041,
+      "total": 20688,
+      "status": "GREAT",
+      "reason": "Hit rate 72.7% (great directional accuracy)"
+    },
+    "kalman_signal_strength": {
+      "hit_rate": 0.7221760029580329,
+      "correct": 15625,
+      "total": 21636,
+      "status": "GREAT",
+      "reason": "Hit rate 72.2% (great directional accuracy)"
+    },
+    "kalman_efficiency_ratio": {
+      "hit_rate": 0.7221760029580329,
+      "correct": 15625,
+      "total": 21636,
+      "status": "GREAT",
+      "reason": "Hit rate 72.2% (great directional accuracy)"
+    },
+    "volume_correlation": {
+      "hit_rate": 0.5114161582547606,
+      "correct": 11065,
+      "total": 21636,
+      "status": "REJECTED",
+      "reason": "Hit rate 51.1% below threshold 52.0%"
+    },
+    "volume_spike_score": {
+      "hit_rate": 0.2949713440562026,
+      "correct": 6382,
+      "total": 21636,
+      "status": "REJECTED",
+      "reason": "Hit rate 29.5% below threshold 52.0%"
+    }
+  },
+  "quintile_results": {
+    "ml_forecast": {
+      "q1_return": 0.01112207817717738,
+      "q5_return": 0.01503561126023075,
+      "spread": 0.00391353308305337,
+      "is_monotonic": false,
+      "status": "NON_MONOTONIC",
+      "quintile_returns": {
+        "(-2.227, 2.834]": 0.01112207817717738,
+        "(2.834, 3.761]": 0.015142743636613774,
+        "(3.761, 4.291]": 0.01580031468624607,
+        "(4.291, 6.035]": 0.016231251593682165,
+        "(6.035, 10.512]": 0.01503561126023075
+      }
+    },
+    "ml_confidence": {
+      "q1_return": 0.01341071076802859,
+      "q5_return": 0.01570869609491987,
+      "spread": 0.002297985326891282,
+      "is_monotonic": false,
+      "status": "NON_MONOTONIC",
+      "quintile_returns": {
+        "(-0.001, 0.834]": 0.01341071076802859,
+        "(0.834, 0.92]": 0.014346395075292017,
+        "(0.92, 0.945]": 0.014062485755837012,
+        "(0.945, 0.971]": 0.015467174619297553,
+        "(0.971, 0.995]": 0.01570869609491987
+      }
+    },
+    "hit_rate": {
+      "q1_return": 0.014670249094659627,
+      "q5_return": 0.014670249094659627,
+      "spread": 0.0,
+      "is_monotonic": true,
+      "status": "MONOTONIC",
+      "quintile_returns": {
+        "(-0.001, 1.0]": 0.014670249094659627
+      }
+    },
+    "mae_score": {
+      "q1_return": 0.01163526881778423,
+      "q5_return": 0.014072509444639532,
+      "spread": 0.0024372406268553023,
+      "is_monotonic": false,
+      "status": "NON_MONOTONIC",
+      "quintile_returns": {
+        "(0.0673, 2.17]": 0.01163526881778423,
+        "(2.17, 2.929]": 0.016799986629450002,
+        "(2.929, 4.071]": 0.015338900923913977,
+        "(4.071, 6.636]": 0.015703844280774114,
+        "(6.636, 14.063]": 0.014072509444639532
+      }
+    },
+    "kalman_signal_strength": {
+      "q1_return": 0.015340950107854376,
+      "q5_return": 0.014000253904262653,
+      "spread": -0.0013406962035917222,
+      "is_monotonic": false,
+      "status": "NON_MONOTONIC",
+      "quintile_returns": {
+        "(0.314, 0.388]": 0.015340950107854376,
+        "(0.388, 0.429]": 0.015082517295166577,
+        "(0.429, 0.463]": 0.014302030217395668,
+        "(0.463, 0.5]": 0.014075129197104571,
+        "(0.5, 0.7]": 0.014000253904262653
+      }
+    },
+    "kalman_efficiency_ratio": {
+      "q1_return": 0.015340950107854376,
+      "q5_return": 0.014000253904262653,
+      "spread": -0.0013406962035917222,
+      "is_monotonic": false,
+      "status": "NON_MONOTONIC",
+      "quintile_returns": {
+        "(0.0375, 0.221]": 0.015340950107854376,
+        "(0.221, 0.323]": 0.015082517295166577,
+        "(0.323, 0.407]": 0.014302030217395668,
+        "(0.407, 0.5]": 0.014075129197104571,
+        "(0.5, 1.0]": 0.014000253904262653
+      }
+    },
+    "volume_correlation": {
+      "q1_return": 0.015310587049303975,
+      "q5_return": 0.014578391939389028,
+      "spread": -0.0007321951099149467,
+      "is_monotonic": false,
+      "status": "NON_MONOTONIC",
+      "quintile_returns": {
+        "(-0.278, -0.152]": 0.015310587049303975,
+        "(-0.152, -0.0138]": 0.015108842111463247,
+        "(-0.0138, 0.113]": 0.012240402585250384,
+        "(0.113, 0.339]": 0.01582336084706696,
+        "(0.339, 0.807]": 0.014578391939389028
+      }
+    },
+    "volume_spike_score": {
+      "q1_return": 0.014570822648709117,
+      "q5_return": 0.014639671475672156,
+      "spread": 6.884882696303954e-05,
+      "is_monotonic": true,
+      "status": "MONOTONIC",
+      "quintile_returns": {
+        "(-0.001, 24.772]": 0.014570822648709117,
+        "(24.772, 98.048]": 0.014639671475672156
+      }
+    }
+  },
+  "correlation_results": {
+    "correlation_matrix": {
+      "ml_forecast": {
+        "ml_forecast": 1.0,
+        "ml_confidence": 0.1843552644903035,
+        "hit_rate": -0.3217479313015737,
+        "mae_score": 0.7673382036173615,
+        "kalman_signal_strength": 0.1239511348141395,
+        "kalman_efficiency_ratio": 0.14375518839245852,
+        "volume_correlation": -0.09242059251651602,
+        "volume_spike_score": -0.08787174769276554
+      },
+      "ml_confidence": {
+        "ml_forecast": 0.1843552644903035,
+        "ml_confidence": 1.0,
+        "hit_rate": 0.16702871977935035,
+        "mae_score": -0.21142463382892332,
+        "kalman_signal_strength": 0.1834272926379275,
+        "kalman_efficiency_ratio": 0.23744300566480145,
+        "volume_correlation": -0.09064696567209263,
+        "volume_spike_score": 0.09179906868113988
+      },
+      "hit_rate": {
+        "ml_forecast": -0.3217479313015737,
+        "ml_confidence": 0.16702871977935035,
+        "hit_rate": 1.0,
+        "mae_score": -0.7112385630302711,
+        "kalman_signal_strength": -0.3909814002688477,
+        "kalman_efficiency_ratio": -0.39098140026884776,
+        "volume_correlation": -0.18014014839409942,
+        "volume_spike_score": 0.005974637396813575
+      },
+      "mae_score": {
+        "ml_forecast": 0.7673382036173615,
+        "ml_confidence": -0.21142463382892332,
+        "hit_rate": -0.7112385630302711,
+        "mae_score": 1.0,
+        "kalman_signal_strength": 0.21643340944918493,
+        "kalman_efficiency_ratio": 0.21643340944918496,
+        "volume_correlation": 0.0049706145389303074,
+        "volume_spike_score": -0.1761317948593191
+      },
+      "kalman_signal_strength": {
+        "ml_forecast": 0.1239511348141395,
+        "ml_confidence": 0.1834272926379275,
+        "hit_rate": -0.3909814002688477,
+        "mae_score": 0.21643340944918493,
+        "kalman_signal_strength": 1.0,
+        "kalman_efficiency_ratio": 0.99559288261757,
+        "volume_correlation": 0.2193432495777471,
+        "volume_spike_score": 0.2829589386548471
+      },
+      "kalman_efficiency_ratio": {
+        "ml_forecast": 0.14375518839245852,
+        "ml_confidence": 0.23744300566480145,
+        "hit_rate": -0.39098140026884776,
+        "mae_score": 0.21643340944918496,
+        "kalman_signal_strength": 0.99559288261757,
+        "kalman_efficiency_ratio": 1.0,
+        "volume_correlation": 0.21582670446269187,
+        "volume_spike_score": 0.2855608841909585
+      },
+      "volume_correlation": {
+        "ml_forecast": -0.09242059251651602,
+        "ml_confidence": -0.09064696567209263,
+        "hit_rate": -0.18014014839409942,
+        "mae_score": 0.0049706145389303074,
+        "kalman_signal_strength": 0.2193432495777471,
+        "kalman_efficiency_ratio": 0.21582670446269187,
+        "volume_correlation": 1.0,
+        "volume_spike_score": 0.18150162706005651
+      },
+      "volume_spike_score": {
+        "ml_forecast": -0.08787174769276554,
+        "ml_confidence": 0.09179906868113988,
+        "hit_rate": 0.005974637396813575,
+        "mae_score": -0.1761317948593191,
+        "kalman_signal_strength": 0.2829589386548471,
+        "kalman_efficiency_ratio": 0.2855608841909585,
+        "volume_correlation": 0.18150162706005651,
+        "volume_spike_score": 1.0
+      }
+    },
+    "redundant_pairs": [
+      {
+        "factor1": "ml_forecast",
+        "factor2": "mae_score",
+        "correlation": 0.7673382036173615
+      },
+      {
+        "factor1": "hit_rate",
+        "factor2": "mae_score",
+        "correlation": -0.7112385630302711
+      },
+      {
+        "factor1": "kalman_signal_strength",
+        "factor2": "kalman_efficiency_ratio",
+        "correlation": 0.99559288261757
+      }
+    ],
+    "num_redundant": 3
+  },
+  "decay_results": {
+    "ml_forecast": {
+      "status": "SKIPPED",
+      "reason": "Not applicable to cross-sectional factors"
+    },
+    "ml_confidence": {
+      "status": "SKIPPED",
+      "reason": "Not applicable to cross-sectional factors"
+    },
+    "hit_rate": {
+      "status": "SKIPPED",
+      "reason": "Not applicable to cross-sectional factors"
+    },
+    "mae_score": {
+      "status": "SKIPPED",
+      "reason": "Not applicable to cross-sectional factors"
+    },
+    "kalman_signal_strength": {
+      "status": "SKIPPED",
+      "reason": "Not applicable to cross-sectional factors"
+    },
+    "kalman_efficiency_ratio": {
+      "status": "SKIPPED",
+      "reason": "Not applicable to cross-sectional factors"
+    },
+    "volume_correlation": {
+      "status": "SKIPPED",
+      "reason": "Not applicable to cross-sectional factors"
+    },
+    "volume_spike_score": {
+      "status": "SKIPPED",
+      "reason": "Not applicable to cross-sectional factors"
+    }
+  },
+  "validated_factors": [
+    "ml_forecast",
+    "ml_confidence",
+    "mae_score",
+    "kalman_signal_strength",
+    "kalman_efficiency_ratio"
+  ]
+}

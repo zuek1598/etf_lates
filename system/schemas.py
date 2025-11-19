@@ -186,7 +186,7 @@ def validate_output(data: Dict, schema: Dict, soft: bool = True) -> Tuple[bool, 
         if not is_valid:
             error_msg = f"{field_name}: {error_msg}"
             if soft:
-                print(f"[EMOJI]  Validation warning: {error_msg}")
+                print(f" Validation warning: {error_msg}")
             else:
                 errors.append(error_msg)
     
@@ -197,7 +197,7 @@ def validate_risk_component(data: Dict) -> bool:
     """Validate Risk Component output"""
     is_valid, errors = validate_output(data, RISK_COMPONENT_SCHEMA, soft=False)
     if not is_valid:
-        print(f"[EMOJI] Risk Component validation failed: {errors}")
+        print(f"Risk Component validation failed: {errors}")
     return is_valid
 
 
@@ -205,7 +205,7 @@ def validate_kalman_hull(data: Dict) -> bool:
     """Validate Kalman Hull output"""
     is_valid, errors = validate_output(data, KALMAN_HULL_SCHEMA, soft=False)
     if not is_valid:
-        print(f"[EMOJI] Kalman Hull validation failed: {errors}")
+        print(f"Kalman Hull validation failed: {errors}")
     return is_valid
 
 
@@ -213,7 +213,7 @@ def validate_volume_intelligence(data: Dict) -> bool:
     """Validate Volume Intelligence output"""
     is_valid, errors = validate_output(data, VOLUME_INTELLIGENCE_SCHEMA, soft=False)
     if not is_valid:
-        print(f"[EMOJI] Volume Intelligence validation failed: {errors}")
+        print(f"Volume Intelligence validation failed: {errors}")
     return is_valid
 
 
@@ -221,12 +221,12 @@ def validate_ml_ensemble(data: Dict) -> bool:
     """Validate ML Ensemble output (CRITICAL: NO bias_correction field)"""
     # CRITICAL CHECK: Ensure NO bias correction field exists
     if 'bias_correction' in data or 'bias_corrected' in data:
-        print(f"[EMOJI] CRITICAL: Bias correction field must NOT exist (raw output required)")
+        print(f"CRITICAL: Bias correction field must NOT exist (raw output required)")
         return False
     
     is_valid, errors = validate_output(data, ML_ENSEMBLE_SCHEMA, soft=False)
     if not is_valid:
-        print(f"[EMOJI] ML Ensemble validation failed: {errors}")
+        print(f"ML Ensemble validation failed: {errors}")
     return is_valid
 
 
