@@ -12,7 +12,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 from utilities.shared_utils import extract_column
-from system.model_cache import ModelCache
+# from system.model_cache import ModelCache  # REMOVED during optimization
 
 try:
     from sklearn.ensemble import RandomForestRegressor
@@ -29,7 +29,7 @@ class MLEnsemble:
         self.forecast_horizon = 60
         self.max_forecast_range = 0.15
         self.use_enhanced_features = use_enhanced_features
-        self.model_cache = ModelCache()
+        # self.model_cache = ModelCache()  # REMOVED during optimization
         # NO BIAS CORRECTION - raw output only
         
         self.risk_params = {
@@ -203,19 +203,9 @@ class MLEnsemble:
                 'trained_models': None  # No models trained
             }
 
-        # If no models provided, try cache first
+        # Train models if needed (cache removed during optimization)
         if models is None or models.get('rf') is None:
-            if ticker:
-                cached = self.model_cache.get_cached_model(ticker, prices)
-                if cached:
-                    models = cached
-
-            # If no cached model, train new one
-            if models is None or models.get('rf') is None:
-                models = self.train_ensemble(prices)
-                # Save to cache
-                if ticker and models.get('rf') is not None:
-                    self.model_cache.save_model(ticker, prices, models)
+            models = self.train_ensemble(prices)
 
         if models.get('rf') is None:
             return {
@@ -290,19 +280,32 @@ class MLEnsemble:
         # If models provided, use just one validation window (reusing trained models)
         # Otherwise use multiple windows with fresh training
         if models is not None and models.get('rf') is not None:
-            # REUSE MODE: Use provided models with just 1 window (no retraining)
+            # REUSE MODE: Use provided models with proper forward validation
             try:
-                X = self.extract_ml_features(prices)
-                X_scaled = self.robust_scale_features(X)
-                rf_pred = models['rf'].predict(X_scaled)[0]
-                ridge_pred = models['ridge'].predict(X_scaled)[0]
-                forecast_return = (rf_pred + ridge_pred) / 2.0
+                # Use multiple windows for proper validation
+                start_idx = train_days
+                end_idx = len(prices) - test_days
+                step = test_days
+                
+                # Use 1 window for maximum speed optimization
+                indices = list(range(start_idx, end_idx, step))[:1]
+                
+                for i in indices:
+                    # Get features at prediction time
+                    train_prices = prices.iloc[i-train_days:i]
+                    X = self.extract_ml_features(train_prices)
+                    X_scaled = self.robust_scale_features(X)
+                    
+                    # Make prediction
+                    rf_pred = models['rf'].predict(X_scaled)[0]
+                    ridge_pred = models['ridge'].predict(X_scaled)[0]
+                    forecast_return = (rf_pred + ridge_pred) / 2.0
 
-                # Use recent actual return as reference
-                actual_return = (prices.iloc[-1] - prices.iloc[-test_days]) / prices.iloc[-test_days] if len(prices) >= test_days else 0
+                    # Get actual forward return
+                    actual_return = (prices.iloc[i + test_days] - prices.iloc[i]) / prices.iloc[i]
 
-                maes.append(abs(forecast_return - actual_return))
-                hits.append(1 if (forecast_return > 0) == (actual_return > 0) else 0)
+                    maes.append(abs(forecast_return - actual_return))
+                    hits.append(1 if (forecast_return > 0) == (actual_return > 0) else 0)
             except:
                 pass
         else:

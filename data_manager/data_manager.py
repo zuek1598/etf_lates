@@ -460,6 +460,30 @@ class ETFDataManager:
         hist_file = hist_dir / f'{ticker}.parquet'
         data.to_parquet(hist_file)
     
+    def load_historical_factors(self, ticker: str) -> pd.DataFrame:
+        """
+        Load historical daily factor values for a specific ETF.
+        
+        Returns:
+            DataFrame with DatetimeIndex and factor columns, or None if not found
+        """
+        hist_file = self.data_dir / 'historical' / f'{ticker}.parquet'
+        
+        if not hist_file.exists():
+            return None
+        
+        try:
+            df = pd.read_parquet(hist_file)
+            # Ensure Date is DatetimeIndex
+            if 'Date' in df.columns:
+                df['Date'] = pd.to_datetime(df['Date'])
+                df = df.set_index('Date')
+            elif not isinstance(df.index, pd.DatetimeIndex):
+                df.index = pd.to_datetime(df.index)
+            return df
+        except Exception as e:
+            return None
+    
     # ============================================================
     # CACHE MANAGEMENT
     # ============================================================

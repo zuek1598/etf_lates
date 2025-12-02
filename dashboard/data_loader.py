@@ -46,14 +46,16 @@ class ETFDataLoader:
         Returns:
             DataFrame with all ETFs and their metrics
             
-        Columns:
-            ticker, name, subcategory, risk_category, beta, volatility,
-            ulcer_index, information_ratio, cvar,
-            kalman_trend, kalman_upper_band, kalman_lower_band,
-            kalman_divergence, kalman_efficiency_ratio,
-            volume_spike_score, volume_correlation, volume_ad_signal,
-            ml_forecast, ml_confidence, quality_flag,
-            ytd_return, one_year_return, composite_score, etc.
+        Columns (VALIDATED FACTORS):
+            ticker, name, subcategory, risk_category,
+            ml_forecast, hit_rate, kalman_signal_strength, cvar,
+            composite_percentile, ytd_return, one_year_return, etc.
+            
+        Note: Only 4 statistically validated factors are used for ranking:
+            - ml_forecast: ML Ensemble forecast (IC=+0.229, p=0.027)
+            - hit_rate: ML directional accuracy (IC=+0.344, p=0.001)
+            - kalman_signal_strength: Kalman momentum (IC=+0.234, p=0.023)
+            - cvar: Conditional Value at Risk (IC=+0.261, p=0.011)
         """
         file_path = self.data_dir / 'etf_universe.parquet'
         

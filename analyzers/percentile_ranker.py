@@ -35,14 +35,18 @@ class PercentileRanker:
         self.minimum_history = 60  # Minimum data points required
 
         # Metrics where LOWER values are better (will be inverted)
+        # Only cvar remains from validated factors
         self.inverted_metrics = {
-            'mae_score': True,          # Lower MAE is better
-            'cvar': True,               # Lower CVaR (risk) is better
-            'risk_score': True,         # Lower composite risk is better
-            'ulcer_index': True,        # Lower UI is better
-            'sharpe_ratio': False,      # Higher Sharpe is better (not inverted)
-            'efficiency_ratio': False,  # Higher efficiency is better (not inverted)
+            'cvar': True,               # Lower CVaR (risk) is better - VALIDATED
         }
+        
+        # Validated factors (statistically significant p < 0.05, positive IC)
+        self.validated_factors = [
+            'ml_forecast',              # IC=+0.229, p=0.027
+            'hit_rate',                 # IC=+0.344, p=0.001
+            'kalman_signal_strength',   # IC=+0.234, p=0.023
+            'cvar',                     # IC=+0.261, p=0.011 (inverted)
+        ]
 
         # Load weights configuration
         self.weights = self._load_weights_config(weights_config_path)

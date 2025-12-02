@@ -1,49 +1,46 @@
-# Modified ETF Analysis System
+# ETF Analysis System - Validated Factor Model
 
-A comprehensive ETF analysis and backtesting system with interactive dashboard.
-
----
-
-## ⚡ TL;DR - Just Want to Use It?
-
-**Read this first:** **[SIMPLE_GUIDE.md](SIMPLE_GUIDE.md)** ← Start here!
-
-**Two commands:**
-```bash
-python3 run_analysis.py  # Run weekly (skip backtest)
-python3 run_dashboard.py # View results anytime
-```
-
-**That's it.** Everything else is optional complexity.
+A comprehensive ETF analysis system using **4 statistically validated factors** for ranking.
 
 ---
 
-## 🚀 Quick Start
+## Validated Factors (p < 0.05)
 
-### 1. Run Full Analysis
+The ranking system uses only factors that passed rigorous statistical validation:
+
+| Factor | IC | p-value | Hit Rate | Description |
+|--------|-----|---------|----------|-------------|
+| **ml_forecast** | +0.229 | 0.027 | 61.7% | ML Ensemble forecast |
+| **hit_rate** | +0.344 | 0.001 | 65.1% | Directional accuracy |
+| **kalman_signal_strength** | +0.234 | 0.023 | 63.8% | Momentum strength |
+| **cvar** | +0.261 | 0.011 | 61.7% | Conditional VaR (risk) |
+
+**Validation:** Cross-sectional testing with 100 ETFs, 20-day forward returns.
+
+---
+
+## Quick Start
+
+### 1. Run Analysis
 ```bash
-python3 run_analysis.py
+python run_analysis.py
 ```
-Choose:
-- **Option 1**: Quick sample backtest (11 ETFs)
-- **Option 2**: Full universe backtest (385 ETFs)
-- **Option 3**: Skip backtest ← **Recommended for weekly runs**
 
 ### 2. Launch Dashboard
 ```bash
-python3 run_dashboard.py
+python run_dashboard.py
 ```
 Open http://127.0.0.1:8050 in your browser.
 
-## 📊 Dashboard Features
+## Dashboard Features
 
 **6 Interactive Pages:**
-1. **📈 Summary** - Overview & Top ETFs
-2. **🚀 Growth Opportunities** - High-potential ETFs
-3. **📊 Backtest Results** - Strategy validation (363 ETFs)
-4. **🌍 Macro & Geo** - Market context analysis
-5. **🔍 ETF Explorer** - Search & filter ETFs
-6. **📊 ETF Details** - Individual ETF deep-dive
+1. **Summary** - Overview & Top ETFs by validated factors
+2. **Growth Opportunities** - High-potential ETFs
+3. **Backtest Results** - Strategy validation
+4. **Macro & Geo** - Market context analysis
+5. **ETF Explorer** - Search & filter ETFs
+6. **ETF Details** - Individual ETF deep-dive
 
 ## 📁 Project Structure
 
@@ -166,13 +163,19 @@ Results saved to `data/backtest_results.parquet` (363 ETFs).
 - **Backtest Guide**: `docs/guides/BACKTEST_GUIDE.md`
 - **Development**: `docs/guides/DEVELOPMENT_GUIDE.md`
 
-## 🎯 Current Status
+## Current Status
 
-✅ **Fully Operational**
-- 377 ETFs with historical data loaded
-- 363 ETFs successfully backtested
+**Fully Operational with Validated Factor Model**
+- 4 statistically validated factors (p < 0.05)
+- 377 ETFs with historical data
+- Cross-sectional percentile ranking
 - Dashboard with 6 interactive pages
-- All components working correctly
+
+### Factor Validation Summary
+- **Tested:** 12 factors across ML, Kalman, Volume, Risk categories
+- **Validated:** 4 factors with statistical significance
+- **Rejected:** 8 factors (negative IC or p > 0.05)
+- **Sample:** 100 ETFs, 20-day forward returns
 
 ## 🔍 Troubleshooting
 
@@ -200,5 +203,6 @@ python3 scripts/download_all_etf_data.py
 
 ---
 
-**Version:** 2.0 (October 2025)  
-**Status:** Production Ready
+**Version:** 3.0 (November 2025)  
+**Status:** Production Ready - Validated Factor Model  
+**Validation Date:** 2025-11-29

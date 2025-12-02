@@ -15,7 +15,7 @@ warnings.filterwarnings('ignore')
 from utilities.shared_utils import extract_column, transform_to_returns
 
 class RiskComponent:
-    """Risk calculation with 30/30/20/20 weighting"""
+    """Risk calculation - VALIDATED FACTORS ONLY (CVaR only)"""
     
     def __init__(self):
         self.risk_free_rate = 0.0435  # RBA rate Oct 2024
@@ -25,8 +25,9 @@ class RiskComponent:
             'Bonds': [90, 100, 60],
             'Commodities': [30, 60, 30]
         }
-        # Weighting: CVaR 30%, Ulcer 30%, Beta 20%, IR 20%
-        self.weights = {'cvar': 0.30, 'ulcer': 0.30, 'beta': 0.20, 'ir': 0.20}
+        # VALIDATED FACTORS ONLY: Only CVaR was statistically significant
+        # Other risk metrics were rejected (p > 0.05 or negative IC)
+        self.validated_only = True
     
     def fit_t_distribution(self, returns: pd.Series) -> Dict:
         """Fit t-distribution to return series with edge case handling"""
@@ -359,8 +360,9 @@ class RiskComponent:
     def calculate_risk_scores(self, etf_data: pd.DataFrame, etf_info: Dict, vix_data: pd.Series = None, 
                              benchmark_data: pd.Series = None, beta: float = np.nan) -> Dict:
         """
-        Comprehensive risk scoring with NEW 30/30/20/20 weighting system
-        Returns: CVaR (30%), Ulcer (30%), Beta (20%), Information Ratio (20%)
+        Risk scoring - VALIDATED FACTORS ONLY (CVaR only when optimized)
+        Normal mode: CVaR (30%), Ulcer (30%), Beta (20%), Information Ratio (20%)
+        Validated mode: CVaR only (statistically significant factor)
         """
         close_col = extract_column(etf_data, 'Close')
         volume_col = extract_column(etf_data, 'Volume')
@@ -377,7 +379,22 @@ class RiskComponent:
                 'quality_flag': '[EMOJI]'
             }
         
-        # Calculate each component
+        if getattr(self, 'validated_only', False):
+            # OPTIMIZED MODE: Calculate only CVaR (validated factor)
+            t_params = self.fit_t_distribution(returns)
+            cvar = self.calculate_cvar(returns, t_params)
+            
+            return {
+                'cvar': cvar,
+                'ulcer_index': np.nan,  # Skipped - not validated
+                'beta': np.nan,         # Skipped - not validated  
+                'information_ratio': np.nan,  # Skipped - not validated
+                'risk_score': 0.5,
+                'risk_category': 'UNKNOWN',
+                'quality_flag': '[EMOJI]'
+            }
+        
+        # NORMAL MODE: Calculate all components (for backward compatibility)
         t_params = self.fit_t_distribution(returns)
         etf_group = self.classify_etf_group(etf_info)
         

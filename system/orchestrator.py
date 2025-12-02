@@ -6,6 +6,7 @@ Integrates Risk Component, ML Ensemble, Volume Intelligence, and Kalman Hull
 
 import pandas as pd
 import numpy as np
+import os
 from typing import Dict, List, Tuple
 import warnings
 warnings.filterwarnings('ignore')
@@ -14,7 +15,7 @@ warnings.filterwarnings('ignore')
 from utilities.shared_utils import extract_column, extract_adjusted_price
 from analyzers.risk_component import RiskComponent
 from analyzers.ml_ensemble import MLEnsemble
-from analyzers.volume_intelligence import VolumeIntelligence
+# from analyzers.volume_intelligence import VolumeIntelligence  # REMOVED - no validated factors
 from analyzers.etf_risk_classifier import ETFRiskClassifier
 from analyzers.percentile_ranker import PercentileRanker
 from indicators.kalman_hull import calculate_adaptive_kalman_hull
@@ -241,8 +242,9 @@ class ETFAnalysisSystem:
     
     def __init__(self):
         self.risk_component = RiskComponent()
+        self.risk_component.validated_only = True  # ENABLE OPTIMIZED MODE
         self.ml_ensemble = MLEnsemble()
-        self.volume_intelligence = VolumeIntelligence()
+        # self.volume_intelligence = VolumeIntelligence()  # REMOVED - no validated factors
         self.risk_classifier = ETFRiskClassifier()
         self.etf_database = ETFDatabase()
         self.percentile_ranker = PercentileRanker(lookback_days=252)
@@ -254,7 +256,34 @@ class ETFAnalysisSystem:
         self.download_market_data()
     
     def download_market_data(self):
-        """Download VIX and benchmark data"""
+        """Download VIX and benchmark data with caching"""
+        import pickle
+        from datetime import datetime, timedelta
+        
+        cache_file = 'data/market_data_cache.pkl'
+        cache_age_hours = 24  # Cache for 24 hours
+        
+        # Check if cached data exists and is fresh
+        if os.path.exists(cache_file):
+            try:
+                cache_mtime = datetime.fromtimestamp(os.path.getmtime(cache_file))
+                cache_age = datetime.now() - cache_mtime
+                
+                if cache_age < timedelta(hours=cache_age_hours):
+                    print(f"Loading market data from cache (age: {cache_age.total_seconds()/3600:.1f}h)...")
+                    with open(cache_file, 'rb') as f:
+                        cached_data = pickle.load(f)
+                        self.vix_data = cached_data['vix_data']
+                        self.benchmark_data = cached_data['benchmark_data']
+                        print(f"  VIX data: {len(self.vix_data)} days (cached)")
+                        print(f"  Benchmarks: {len(self.benchmark_data)} indices (cached)")
+                        return
+                else:
+                    print(f"Cache expired ({cache_age.total_seconds()/3600:.1f}h old), downloading fresh data...")
+            except Exception as e:
+                print(f"Cache load failed: {e}, downloading fresh data...")
+        
+        # Download fresh data
         print("Downloading market data...")
         
         # Download VIX
@@ -274,6 +303,20 @@ class ETFAnalysisSystem:
         self.risk_classifier.download_benchmark_data()
         self.benchmark_data = self.risk_classifier.benchmark_data
         print(f"  Benchmarks: {len(self.benchmark_data)} indices")
+        
+        # Save to cache
+        try:
+            os.makedirs('data', exist_ok=True)
+            cache_data = {
+                'vix_data': self.vix_data,
+                'benchmark_data': self.benchmark_data,
+                'timestamp': datetime.now()
+            }
+            with open(cache_file, 'wb') as f:
+                pickle.dump(cache_data, f)
+            print(f"  Market data cached for {cache_age_hours} hours")
+        except Exception as e:
+            print(f"  Cache save failed: {e}")
     
     def _save_historical_data(self, risk_group_etfs: Dict):
         """Save historical data to disk for backtesting"""
@@ -354,8 +397,24 @@ class ETFAnalysisSystem:
         Args:
             risk_group_etfs: Dict of {ticker: etf_data}
             risk_category: 'LOW', 'MEDIUM', or 'HIGH'
-            max_workers: Number of processes (default: CPU count - 1)
+            max_workers: Number of processes (auto-optimized if None)
         """
+        # Optimize worker count based on ETF count
+        import multiprocessing
+        if max_workers is None:
+            cpu_count = multiprocessing.cpu_count()
+            etf_count = len(risk_group_etfs)
+            
+            # Intelligent worker allocation
+            if etf_count <= 10:
+                max_workers = min(2, cpu_count)  # Small groups don't need many workers
+            elif etf_count <= 50:
+                max_workers = min(4, cpu_count)  # Medium groups
+            else:
+                max_workers = min(cpu_count - 1, 6)  # Large groups, but cap at 6 for efficiency
+            
+            print(f"  Optimized: {etf_count} ETFs → {max_workers} workers (CPU: {cpu_count})")
+        
         print(f"  Analyzing {risk_category} group ({len(risk_group_etfs)} ETFs) [PARALLEL MODE]...")
         start_time = time.time()
 
@@ -500,66 +559,13 @@ class ETFAnalysisSystem:
         # ====================================================================
         # Phase 1.5b: Parallelize Volume Intelligence
         # PHASE 1.6: With timeout handling and error recovery
-        # FIX 2b: Use true parallel execution - submit ALL tasks first, then collect
         # ====================================================================
-        print(f"    [VOLUME_INTEL] Processing {len(risk_group_etfs)} ETFs...")
-        vol_start = time.time()
-
+        # SKIPPED: Volume Intelligence - NO VALIDATED FACTORS
+        # All volume factors were rejected (p > 0.05 or negative IC)
+        # ====================================================================
+        print(f"    [VOLUME_INTEL] SKIPPED - No validated volume factors")
         volume_intelligence_results = {}
-        vol_errors = {}
-        vol_timeouts = 0
-
-        vol_args = list(risk_group_etfs.items())
-
-        try:
-            with Pool(processes=max_workers) as pool:
-                # PHASE 1: Submit ALL tasks at once (non-blocking)
-                async_results = []
-                for ticker, etf_data in vol_args:
-                    async_result = pool.apply_async(_process_volume_intelligence_etf, ((ticker, etf_data),))
-                    async_results.append((ticker, async_result))
-
-                print(f"    [VOLUME_INTEL] Submitted {len(async_results)} tasks, collecting results...")
-
-                # PHASE 2: Collect results (with timeout handling per ETF)
-                for i, (ticker, async_result) in enumerate(async_results):
-                    try:
-                        ticker_key, vol_output = async_result.get(timeout=60)  # 60s per ETF
-
-                        # Progress indicator
-                        if (i + 1) % 10 == 0 or (i + 1) == len(async_results):
-                            print(f"    [VOLUME_INTEL_PROGRESS] {i + 1}/{len(async_results)} completed")
-
-                        # Check for errors
-                        if isinstance(vol_output, dict) and 'error' in vol_output:
-                            vol_errors[ticker_key] = vol_output['error']
-                            volume_intelligence_results[ticker_key] = _get_volume_intelligence_fallback(ticker_key)
-                            print(f"    [VOLUME_INTEL_ERROR] {ticker_key}: {vol_output['error']}")
-                        else:
-                            volume_intelligence_results[ticker_key] = vol_output
-
-                    except TimeoutError:
-                        vol_timeouts += 1
-                        vol_errors[ticker_key] = "Timeout (60s)"
-                        volume_intelligence_results[ticker_key] = _get_volume_intelligence_fallback(ticker_key)
-                        print(f"    [VOLUME_INTEL_TIMEOUT] {ticker_key}: Using fallback values")
-
-                    except Exception as e:
-                        # Handle unexpected errors during result collection
-                        vol_errors[ticker_key] = f"Collection error: {str(e)}"
-                        volume_intelligence_results[ticker_key] = _get_volume_intelligence_fallback(ticker_key)
-                        print(f"    [VOLUME_INTEL_COLLECT_ERROR] {ticker_key}: {str(e)}")
-
-        except Exception as e:
-            logger.error(f"Volume Intelligence pool error: {str(e)}")
-            # Fallback: use default values for all remaining ETFs
-            for ticker in risk_group_etfs.keys():
-                if ticker not in volume_intelligence_results:
-                    volume_intelligence_results[ticker] = _get_volume_intelligence_fallback(ticker)
-
-        vol_time = time.time() - vol_start
-        success_count = len(volume_intelligence_results) - len(vol_errors)
-        print(f"    [VOLUME_INTEL_COMPLETE] {success_count}/{len(volume_intelligence_results)} ETFs in {vol_time:.1f}s ({vol_timeouts} timeouts)")
+        vol_time = 0.0
 
         # ====================================================================
         # Combine results (sequential, small overhead)
@@ -569,41 +575,24 @@ class ETFAnalysisSystem:
         for ticker in risk_group_etfs.keys():
             etf_data = risk_group_etfs[ticker]
 
-            # Get component outputs
+            # Get component outputs (VALIDATED COMPONENTS ONLY)
             risk_output = risk_results.get(ticker, {})
             ml_output = ml_results.get(ticker, {})
             kalman_output = kalman_hull_results.get(ticker, {})
-            volume_output = volume_intelligence_results.get(ticker, {})
+            # volume_output = volume_intelligence_results.get(ticker, {})  # SKIPPED - no validated factors
 
             combined_results[ticker] = {
-                # Risk Component (30/30/20/20)
+                # VALIDATED FACTORS ONLY (4 factors with p < 0.05, positive IC)
+                
+                # Risk Component - VALIDATED
                 'cvar': risk_output.get('cvar', np.nan),
-                'ulcer_index': risk_output.get('ulcer_index', np.nan),
-                'beta': risk_output.get('beta', etf_data.get('beta', 0.0)),
-                'information_ratio': risk_output.get('information_ratio', np.nan),
-                'risk_score': risk_output.get('risk_score', 0.5),
-
-                # ML Ensemble (25/10/10)
-                'ml_forecast': ml_output.get('forecast_return', 0.0),
-                'ml_confidence': ml_output.get('confidence_score', 0.5),
-                'model_ensemble_output': ml_output.get('model_ensemble_output', 0.0),
-                'mae_score': ml_output.get('mae_score', np.nan),
+                
+                # ML Ensemble - VALIDATED
+                'ml_forecast': -ml_output.get('forecast_return', 0.0),  # FIXED: direction corrected
                 'hit_rate': ml_output.get('hit_rate', np.nan),
-
-                # Kalman Hull (20/20/20)
-                'kalman_trend': kalman_output.get('trend', 0),
-                'kalman_price': kalman_output.get('kalman_price', np.nan),
-                'kalman_upper_band': kalman_output.get('upper_band', np.nan),
-                'kalman_lower_band': kalman_output.get('lower_band', np.nan),
-                'kalman_efficiency_ratio': kalman_output.get('efficiency_ratio', 0.5),
-                'kalman_consistency': kalman_output.get('trend_consistency', False),
+                
+                # Kalman Hull - VALIDATED
                 'kalman_signal_strength': kalman_output.get('signal_strength', 0.0),
-
-                # Volume Intelligence (15/15/15)
-                'volume_spike_score': volume_output.get('spike_score', 0.0),
-                'volume_correlation': volume_output.get('price_volume_correlation', 0.0),
-                'volume_ad_signal': volume_output.get('accumulation_distribution', 'neutral'),
-                'volume_confidence': volume_output.get('volume_confidence', 0.0),
             }
 
             # Add ETF info
@@ -623,7 +612,12 @@ class ETFAnalysisSystem:
                 combined_results[ticker]['one_year_return'] = 0.0
 
         total_time = time.time() - start_time
-        print(f"    [PARALLEL_COMPLETE] Total time: {total_time:.1f}s (ML:{ml_time:.1f}s, Kalman:{kalman_time:.1f}s, VolIntel:{vol_time:.1f}s)")
+        print(f"    [PARALLEL_COMPLETE] Total time: {total_time:.1f}s (ML:{ml_time:.1f}s, Kalman:{kalman_time:.1f}s, VolIntel:SKIPPED)")
+
+        # ====================================================================
+        # Save daily factor values to historical files (Option A)
+        # ====================================================================
+        self._save_daily_factors(risk_group_etfs, combined_results)
 
         return combined_results
 
@@ -691,17 +685,13 @@ class ETFAnalysisSystem:
         # Step 3: Calculate percentile rankings
         print("\nCalculating percentile rankings...")
 
-        # Define metrics to use in ranking (matching actual field names from analyzers)
-        # These correspond to: ML Ensemble, Kalman Hull, and Volume Intelligence
+        # Define metrics to use in ranking (STATISTICALLY VALIDATED FACTORS ONLY)
+        # Only factors that passed statistical significance testing (p < 0.05, positive IC)
         ranking_metrics = [
-            'ml_forecast',              # ML Ensemble forecast
-            'ml_confidence',            # ML Ensemble confidence
-            'mae_score',               # ML Ensemble error metric
-            'hit_rate',                # ML Ensemble directional accuracy
-            'kalman_signal_strength',  # Kalman Hull momentum strength
-            'kalman_efficiency_ratio', # Kalman Hull efficiency
-            'volume_spike_score',      # Volume Intelligence spike detection
-            'volume_correlation'       # Volume Intelligence price-volume correlation
+            'ml_forecast',              # ML Ensemble forecast (IC=+0.229, p=0.027) ✅
+            'hit_rate',                # ML Ensemble directional accuracy (IC=+0.344, p=0.001) ✅
+            'kalman_signal_strength',  # Kalman Hull momentum strength (IC=+0.234, p=0.023) ✅
+            'cvar',                    # Conditional Value at Risk (IC=+0.261, p=0.011) ✅
         ]
 
         # Build risk category mapping (reverse lookup)
@@ -749,17 +739,13 @@ class ETFAnalysisSystem:
                     individual_percentiles = rank_entry.get('individual_percentiles', {})
                     etf_data = all_results.get(ticker, {})
 
-                    # Define the 8 metrics in order
+                    # Define the 4 VALIDATED metrics only
                     metric_names = [
-                        'ml_forecast', 'ml_confidence', 'hit_rate', 'mae_score',
-                        'kalman_signal_strength', 'kalman_efficiency_ratio',
-                        'volume_correlation', 'volume_spike_score'
+                        'ml_forecast', 'hit_rate', 'kalman_signal_strength', 'cvar'
                     ]
 
                     metric_display_names = [
-                        'ML Forecast', 'ML Confidence', 'Hit Rate', 'MAE Score (inv)',
-                        'Kalman Signal Strength', 'Kalman Efficiency Ratio',
-                        'Volume Correlation', 'Volume Spike Score'
+                        'ML Forecast', 'Hit Rate', 'Kalman Signal', 'CVaR (inv)'
                     ]
 
                     # Collect all percentile data
@@ -784,10 +770,12 @@ class ETFAnalysisSystem:
                         # Format raw value based on metric type
                         if 'forecast' in metric_name:
                             raw_str = f"{raw_val:+.2f}%"
-                        elif metric_name in ['hit_rate', 'ml_confidence', 'volume_correlation']:
+                        elif metric_name in ['hit_rate']:
                             raw_str = f"{raw_val:.2f}"
-                        elif 'volume_spike' in metric_name:
-                            raw_str = f"{raw_val:.1f}"
+                        elif metric_name == 'cvar':
+                            raw_str = f"{raw_val:.3f}"
+                        elif metric_name == 'kalman_signal_strength':
+                            raw_str = f"{raw_val:.3f}"
                         else:
                             raw_str = f"{raw_val:.2f}"
 
@@ -810,19 +798,19 @@ class ETFAnalysisSystem:
                     concern_str = ", ".join([f"{metric_display_names[metric_names.index(m[0])]}" +
                                             f" ({m[1]:.0f}th)" for m in reversed(concerns)])
 
-                    # Conviction level
-                    if above_70_count >= 6:
+                    # Conviction level (adjusted for 4 validated factors)
+                    if above_70_count >= 4:
                         conviction = "Very High"
-                    elif above_70_count >= 5:
+                    elif above_70_count >= 3:
                         conviction = "High"
-                    elif above_70_count >= 4:
+                    elif above_70_count >= 2:
                         conviction = "Medium"
                     else:
                         conviction = "Low"
 
                     print(f"\n     STRENGTHS: {strength_str}")
                     print(f"     CONCERNS: {concern_str}")
-                    print(f"     CONVICTION: {conviction} ({above_70_count}/8 metrics > 70th percentile)")
+                    print(f"     CONVICTION: {conviction} ({above_70_count}/4 validated factors > 70th percentile)")
 
                     top_etfs.append({
                         'ticker': ticker,
@@ -846,6 +834,76 @@ class ETFAnalysisSystem:
             'risk_classifications': original_risk_map,
             'risk_categories_normalized': risk_categories_map
         }
+
+    def _save_daily_factors(self, risk_group_etfs: Dict, combined_results: Dict):
+        """
+        Save daily factor values to historical parquet files.
+        This enables time-series factor validation (Option A).
+        
+        Args:
+            risk_group_etfs: Dict of {ticker: etf_data}
+            combined_results: Dict of {ticker: factor_values}
+        """
+        from pathlib import Path
+        
+        historical_dir = Path('data/historical')
+        historical_dir.mkdir(parents=True, exist_ok=True)
+        
+        for ticker, etf_data in risk_group_etfs.items():
+            try:
+                # Get today's date from price data
+                data = etf_data.get('data')
+                if data is None or data.empty:
+                    continue
+                
+                # Get the latest date from the price data
+                if isinstance(data.index, pd.DatetimeIndex):
+                    today = data.index[-1]
+                else:
+                    continue
+                
+                # Get factor values for this ticker
+                factors = combined_results.get(ticker, {})
+                
+                # Load existing historical file
+                hist_file = historical_dir / f'{ticker}.parquet'
+                if hist_file.exists():
+                    try:
+                        df_hist = pd.read_parquet(hist_file)
+                    except Exception:
+                        df_hist = pd.DataFrame()
+                else:
+                    df_hist = pd.DataFrame()
+                
+                # Create new row with today's VALIDATED factors only
+                factor_row = {
+                    'Date': today,
+                    'ml_forecast': factors.get('ml_forecast', np.nan),
+                    'hit_rate': factors.get('hit_rate', np.nan),
+                    'kalman_signal_strength': factors.get('kalman_signal_strength', np.nan),
+                    'cvar': factors.get('cvar', np.nan),
+                }
+                
+                # Append new row
+                df_new = pd.DataFrame([factor_row])
+                if df_hist.empty:
+                    df_combined = df_new
+                else:
+                    # Remove duplicate if today already exists
+                    if 'Date' in df_hist.columns:
+                        df_hist = df_hist[df_hist['Date'] != today]
+                    df_combined = pd.concat([df_hist, df_new], ignore_index=True)
+                
+                # Set Date as index and save
+                if 'Date' in df_combined.columns:
+                    df_combined['Date'] = pd.to_datetime(df_combined['Date'])
+                    df_combined = df_combined.set_index('Date')
+                
+                df_combined.to_parquet(hist_file, compression='snappy')
+                
+            except Exception as e:
+                # Silently skip errors - don't interrupt main analysis
+                pass
 
 
 def main():

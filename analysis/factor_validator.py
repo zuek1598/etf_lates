@@ -45,32 +45,42 @@ class FactorValidator:
         self.validation_results = {}
         self.forward_periods = [5, 10, 20, 40, 60]  # Days to test
 
-    def _normalize_factor_values(self, factor_values: Dict) -> Dict[str, pd.Series]:
+    def _normalize_factor_values(self, factor_values: Dict) -> Dict:
         """
-        Normalize factor_values to ensure all values are pandas Series.
-
-        Handles both:
-        - Dict of dicts: {factor_name: {ticker: value}} -> converts to Series
-        - Dict of Series: {factor_name: pd.Series} -> returns as-is
-
-        Args:
-            factor_values: Factor values in either format
-
-        Returns:
-            Dict of pandas Series: {factor_name: pd.Series(ticker: value)}
+        Normalize factor values to consistent format.
+        
+        Handles:
+        - Dict of dicts: {factor: {ticker: value}} → Series
+        - Dict of Series: {factor: Series} → Series
+        - Dict of DataFrames: {factor: DataFrame} → DataFrame (time-series)
+        - Dict of arrays: {factor: array} → Series
         """
         normalized = {}
-
+        
         for factor_name, factor_data in factor_values.items():
-            if isinstance(factor_data, pd.Series):
-                # Already a Series, use as-is
+            if isinstance(factor_data, pd.DataFrame):
+                # Keep DataFrame as-is for time-series data
+                normalized[factor_name] = factor_data
+            elif isinstance(factor_data, pd.Series):
                 normalized[factor_name] = factor_data
             elif isinstance(factor_data, dict):
-                # Dict of {ticker: value}, convert to Series
+                # Convert dict to Series
                 normalized[factor_name] = pd.Series(factor_data)
+            elif isinstance(factor_data, np.ndarray):
+                # Handle numpy arrays - check dimensionality
+                if factor_data.ndim == 1:
+                    normalized[factor_name] = pd.Series(factor_data)
+                elif factor_data.ndim == 2:
+                    # 2D array - convert to DataFrame
+                    normalized[factor_name] = pd.DataFrame(factor_data)
+                else:
+                    raise ValueError(f"Unsupported array shape for {factor_name}: {factor_data.shape}")
             else:
-                # Assume it's array-like, try to convert to Series
-                normalized[factor_name] = pd.Series(factor_data)
+                # Try to convert to Series as fallback
+                try:
+                    normalized[factor_name] = pd.Series(factor_data)
+                except Exception as e:
+                    raise ValueError(f"Cannot normalize {factor_name}: {type(factor_data)}")
 
         return normalized
 
@@ -78,15 +88,13 @@ class FactorValidator:
     # TEST 1: INFORMATION COEFFICIENT (IC)
     # ========================================================================
 
-    def test_information_coefficient(self, factor_values: Dict[str, pd.Series],
-                                     price_data: Dict[str, pd.Series],
-                                     forward_days: int = 20) -> Dict[str, Dict]:
+    def test_cross_sectional_ic(self, factor_values: Dict[str, pd.Series],
+                               price_data: Dict[str, pd.Series],
+                               forward_days: int = 20) -> Dict[str, Dict]:
         """
-        Test Information Coefficient - correlation between factor and forward returns.
-
-        NOTE: IC is NOT applicable to cross-sectional factors (constant value per ticker).
-        For cross-sectional factors, use Hit Rate and Quintile tests instead.
-        This test returns SKIPPED for all factors.
+        Test Cross-Sectional Information Coefficient - correlation between factor ranking and forward returns.
+        
+        For cross-sectional factors: Do higher factor values predict higher returns across tickers?
 
         Args:
             factor_values: Dict of {factor_name: Series with tickers as index}
@@ -94,58 +102,19 @@ class FactorValidator:
             forward_days: Number of days forward to calculate returns
 
         Returns:
-            Dict of {factor_name: {'status': 'SKIPPED'}}
+            Dict of {factor_name: {'ic': value, 'p_value': value, 'status': 'VALIDATED'/'REJECTED'}}
         """
         ic_results = {}
 
-        print(f"\nTEST 1: Information Coefficient (IC)")
+        print(f"\nTEST 1: Cross-Sectional IC (Ranking Correlation)")
         print(f"  Forward period: {forward_days} days")
         print(f"  Threshold: IC > {self.ic_threshold}")
         print(f"  {'-' * 60}")
-        print(f"  NOTE: IC test skipped - not applicable to cross-sectional factors")
-        print(f"        (factors are constant per ticker, not time-varying)")
-        print(f"        Use Hit Rate and Quintile tests instead.\n")
 
         for factor_name, factor_series in factor_values.items():
-            ic_results[factor_name] = {
-                'ic': np.nan,
-                'p_value': np.nan,
-                'status': 'SKIPPED',
-                'reason': 'Not applicable to cross-sectional factors'
-            }
-            print(f"  {factor_name:30s} [SKIPPED - cross-sectional factor]")
+            factor_returns = []
 
-        return ic_results
-
-    # ========================================================================
-    # TEST 2: HIT RATE (DIRECTIONAL ACCURACY)
-    # ========================================================================
-
-    def test_hit_rate(self, factor_values: Dict[str, pd.Series],
-                     price_data: Dict[str, pd.Series],
-                     forward_days: int = 20) -> Dict[str, Dict]:
-        """
-        Test Hit Rate - percentage of correct directional predictions.
-
-        Args:
-            factor_values: Dict of {factor_name: Series with tickers as index}
-            price_data: Dict of {ticker: Series with dates as index}
-            forward_days: Number of days forward for return calculation
-
-        Returns:
-            Dict of {factor_name: {'hit_rate': value, 'status': 'VALIDATED'/'REJECTED'}}
-        """
-        hit_rate_results = {}
-
-        print(f"\nTEST 2: Hit Rate (Directional Accuracy)")
-        print(f"  Forward period: {forward_days} days")
-        print(f"  Threshold: Hit rate > {self.hit_rate_threshold:.1%}")
-        print(f"  {'-' * 60}")
-
-        for factor_name, factor_series in factor_values.items():
-            correct_predictions = 0
-            total_predictions = 0
-
+            # factor_series has tickers as index
             for ticker in factor_series.index:
                 if ticker not in price_data:
                     continue
@@ -157,25 +126,151 @@ class FactorValidator:
                 if pd.isna(factor_val):
                     continue
 
-                # Calculate factor direction (positive/negative)
-                factor_direction = np.sign(factor_val)
-
-                # Calculate return direction
+                # Calculate forward return (use most recent available)
+                # FIXED: Calculate actual forward returns (future price / current price - 1)
                 forward_returns = prices.shift(-forward_days) / prices - 1
-                return_direction = np.sign(forward_returns)
+                
+                # Get the most recent forward return that's not NaN
+                # This gives us the return from today to 20 days in the future
+                valid_returns = forward_returns.dropna()
+                if len(valid_returns) > 0:
+                    forward_return = valid_returns.iloc[-1]  # Most recent forward return
+                    factor_returns.append({
+                        'factor': factor_val,
+                        'return': forward_return,
+                        'ticker': ticker
+                    })
 
-                # Count matches
-                common_dates = forward_returns.dropna().index
-                if len(common_dates) >= 30:
-                    return_dir_clean = return_direction.loc[common_dates].dropna()
+            # Sample size warning
+            if len(factor_returns) < 30:
+                print(f"  [WARN] Sample size {len(factor_returns)} < 30 - Results may not be statistically significant")
+            
+            if len(factor_returns) >= 10:
+                # Create DataFrame for correlation analysis
+                df = pd.DataFrame(factor_returns)
+                
+                # Calculate cross-sectional IC (Spearman correlation)
+                if df['factor'].std() > 0 and df['return'].std() > 0:
+                    ic, p_value = spearmanr(df['factor'], df['return'])
+                    
+                    # Determine status - FIXED LOGIC
+                    if p_value > 0.05:
+                        status = 'REJECTED'
+                        reason = f'IC={ic:.4f} p={p_value:.3f} (NOT SIGNIFICANT)'
+                    elif abs(ic) < self.ic_threshold:
+                        status = 'REJECTED'
+                        reason = f'IC={ic:.4f} below threshold {self.ic_threshold}'
+                    elif ic < 0:
+                        status = 'REJECTED'
+                        reason = f'IC={ic:.4f} NEGATIVE correlation (inverse relationship)'
+                    elif ic > 0.10:
+                        status = 'GREAT'
+                        reason = f'IC={ic:.4f} p={p_value:.3f} (great positive ranking)'
+                    else:
+                        status = 'VALIDATED'
+                        reason = f'IC={ic:.4f} p={p_value:.3f} (good positive ranking)'
 
-                    if len(return_dir_clean) > 0:
-                        matches = np.sum(return_dir_clean.values == factor_direction)
-                        correct_predictions += matches
-                        total_predictions += len(return_dir_clean)
+                    ic_results[factor_name] = {
+                        'ic': ic,
+                        'p_value': p_value,
+                        'status': status,
+                        'reason': reason,
+                        'num_observations': len(df)
+                    }
 
-            if total_predictions > 0:
-                hit_rate = correct_predictions / total_predictions
+                    print(f"  {factor_name:30s} IC={ic:+.4f}  p={p_value:.4f}  [{status}]")
+                else:
+                    ic_results[factor_name] = {
+                        'ic': np.nan,
+                        'p_value': np.nan,
+                        'status': 'INSUFFICIENT_DATA',
+                        'reason': 'Zero variance in factor or returns',
+                        'num_observations': len(df)
+                    }
+                    print(f"  {factor_name:30s} [INSUFFICIENT DATA - zero variance]")
+            else:
+                ic_results[factor_name] = {
+                    'ic': np.nan,
+                    'p_value': np.nan,
+                    'status': 'INSUFFICIENT_DATA',
+                    'reason': f'Only {len(factor_returns)} observations (need ≥10)',
+                    'num_observations': len(factor_returns)
+                }
+                print(f"  {factor_name:30s} [INSUFFICIENT DATA: {len(factor_returns)} obs]")
+
+        return ic_results
+
+    # ========================================================================
+    # TEST 2: HIT RATE (DIRECTIONAL ACCURACY)
+    # ========================================================================
+
+    def test_cross_sectional_hit_rate(self, factor_values: Dict[str, pd.Series],
+                                     price_data: Dict[str, pd.Series],
+                                     forward_days: int = 20) -> Dict[str, Dict]:
+        """
+        Test Cross-Sectional Hit Rate - do factors correctly rank future returns?
+
+        For cross-sectional factors: Do higher factor values lead to higher returns across tickers?
+
+        Args:
+            factor_values: Dict of {factor_name: Series with tickers as index}
+            price_data: Dict of {ticker: Series with dates as index}
+            forward_days: Number of days forward for return calculation
+
+        Returns:
+            Dict of {factor_name: {'hit_rate': value, 'status': 'VALIDATED'/'REJECTED'}}
+        """
+        hit_rate_results = {}
+
+        print(f"\nTEST 2: Cross-Sectional Hit Rate (Ranking Accuracy)")
+        print(f"  Forward period: {forward_days} days")
+        print(f"  Threshold: Hit rate > {self.hit_rate_threshold:.1%}")
+        print(f"  {'-' * 60}")
+
+        for factor_name, factor_series in factor_values.items():
+            factor_returns = []
+
+            # factor_series has tickers as index
+            for ticker in factor_series.index:
+                if ticker not in price_data:
+                    continue
+
+                factor_val = factor_series[ticker]  # Single scalar value
+                prices = price_data[ticker]  # Time series
+
+                # Skip if factor value is NaN
+                if pd.isna(factor_val):
+                    continue
+
+                # Calculate forward return (use most recent available)
+                forward_returns = prices.shift(-forward_days) / prices - 1
+                valid_returns = forward_returns.dropna()
+                if len(valid_returns) > 0:
+                    forward_return = valid_returns.iloc[-1]  # Most recent
+                    factor_returns.append({
+                        'factor': factor_val,
+                        'return': forward_return
+                    })
+
+            if len(factor_returns) >= 10:
+                # Create DataFrame for ranking analysis
+                df = pd.DataFrame(factor_returns)
+                
+                # Calculate median split hit rate
+                factor_median = df['factor'].median()
+                return_median = df['return'].median()
+                
+                # Count correct directional predictions
+                correct = 0
+                total = len(df)
+                
+                for _, row in df.iterrows():
+                    # Factor above median should predict return above median
+                    if (row['factor'] >= factor_median and row['return'] >= return_median) or \
+                       (row['factor'] < factor_median and row['return'] < return_median):
+                        correct += 1
+                
+                hit_rate = correct / total
 
                 # Determine status
                 if hit_rate < self.hit_rate_threshold:
@@ -183,26 +278,26 @@ class FactorValidator:
                     reason = f'Hit rate {hit_rate:.1%} below threshold {self.hit_rate_threshold:.1%}'
                 elif hit_rate > 0.60:
                     status = 'GREAT'
-                    reason = f'Hit rate {hit_rate:.1%} (great directional accuracy)'
+                    reason = f'Hit rate {hit_rate:.1%} (great ranking accuracy)'
                 else:
                     status = 'VALIDATED'
-                    reason = f'Hit rate {hit_rate:.1%} (good directional accuracy)'
+                    reason = f'Hit rate {hit_rate:.1%} (good ranking accuracy)'
 
                 hit_rate_results[factor_name] = {
                     'hit_rate': hit_rate,
-                    'correct': correct_predictions,
-                    'total': total_predictions,
+                    'correct': correct,
+                    'total': total,
                     'status': status,
                     'reason': reason
                 }
 
-                print(f"  {factor_name:30s} Hit Rate={hit_rate:.1%}  ({correct_predictions}/{total_predictions})  [{status}]")
+                print(f"  {factor_name:30s} Hit Rate={hit_rate:.1%}  ({correct}/{total})  [{status}]")
             else:
                 hit_rate_results[factor_name] = {
                     'hit_rate': np.nan,
                     'status': 'INSUFFICIENT_DATA'
                 }
-                print(f"  {factor_name:30s} [INSUFFICIENT DATA]")
+                print(f"  {factor_name:30s} [INSUFFICIENT DATA: {len(factor_returns)} obs]")
 
         return hit_rate_results
 
@@ -210,11 +305,13 @@ class FactorValidator:
     # TEST 3: QUINTILE ANALYSIS
     # ========================================================================
 
-    def test_quintile_analysis(self, factor_values: Dict[str, pd.Series],
-                              price_data: Dict[str, pd.Series],
-                              forward_days: int = 20) -> Dict[str, Dict]:
+    def test_cross_sectional_quintile(self, factor_values: Dict[str, pd.Series],
+                                     price_data: Dict[str, pd.Series],
+                                     forward_days: int = 20) -> Dict[str, Dict]:
         """
-        Test Quintile Analysis - verify monotonic relationship with returns.
+        Test Cross-Sectional Quintile Analysis - verify monotonic relationship with returns.
+
+        For cross-sectional factors: Do higher factor quintiles have higher returns?
 
         Args:
             factor_values: Dict of {factor_name: Series with tickers as index}
@@ -226,35 +323,34 @@ class FactorValidator:
         """
         quintile_results = {}
 
-        print(f"\nTEST 3: Quintile Analysis (Monotonic Relationship)")
+        print(f"\nTEST 3: Cross-Sectional Quintile Analysis (Monotonic Relationship)")
         print(f"  Forward period: {forward_days} days")
         print(f"  {'-' * 60}")
 
         for factor_name, factor_series in factor_values.items():
             all_data = []
 
-            # Collect all (factor_value, forward_return) pairs
+            # factor_series has tickers as index
             for ticker in factor_series.index:
                 if ticker not in price_data:
                     continue
 
-                factor_val = factor_series[ticker]
-                prices = price_data[ticker]
-                forward_returns = prices.shift(-forward_days) / prices - 1
+                factor_val = factor_series[ticker]  # Single scalar value
+                prices = price_data[ticker]  # Time series
 
                 # Skip if factor value is NaN
                 if pd.isna(factor_val):
                     continue
 
-                # Get all forward returns for this ticker
-                common_dates = forward_returns.dropna().index
-                if len(common_dates) >= 30:
-                    for date in common_dates:
-                        if pd.notna(forward_returns[date]):
-                            all_data.append({
-                                'factor': factor_val,
-                                'return': forward_returns[date]
-                            })
+                # Calculate forward return (use most recent available)
+                forward_returns = prices.shift(-forward_days) / prices - 1
+                valid_returns = forward_returns.dropna()
+                if len(valid_returns) > 0:
+                    forward_return = valid_returns.iloc[-1]  # Most recent
+                    all_data.append({
+                        'factor': factor_val,
+                        'return': forward_return
+                    })
 
             if len(all_data) >= 100:
                 df = pd.DataFrame(all_data)
@@ -403,60 +499,92 @@ class FactorValidator:
     # ========================================================================
     # COMPREHENSIVE VALIDATION
     # ========================================================================
-
     def run_comprehensive_validation(self, factor_values: Dict[str, pd.Series],
                                     price_data: Dict[str, pd.Series],
                                     forward_days: int = 20) -> Dict:
         """
-        Run all 5 tests and generate validation summary.
+        Run all cross-sectional validation tests on factors.
 
         Args:
-            factor_values: Dict of {factor_name: factor_values_series}
-            price_data: Dict of {ticker: closing_prices_series}
-            forward_days: Forward period for return calculations
+            factor_values: Dict of {factor_name: Series with tickers as index}
+            price_data: Dict of {ticker: Series with dates as index}
+            forward_days: Number of days forward for return calculation
 
         Returns:
-            Dict with all validation results
+            Dict with all validation results and final validated factors list
         """
-        print("\n" + "=" * 70)
-        print("COMPREHENSIVE FACTOR VALIDATION - ALL TESTS")
-        print("=" * 70)
+        print("\n" + "="*70)
+        print("COMPREHENSIVE FACTOR VALIDATION - CROSS-SECTIONAL TESTS")
+        print("="*70)
 
-        # Normalize factor_values to ensure all are pandas Series
+        # Normalize factor values
         factor_values = self._normalize_factor_values(factor_values)
 
-        # Run all tests
-        ic_results = self.test_information_coefficient(factor_values, price_data, forward_days)
-        hit_rate_results = self.test_hit_rate(factor_values, price_data, forward_days)
-        quintile_results = self.test_quintile_analysis(factor_values, price_data, forward_days)
+        # Run cross-sectional tests
+        ic_results = self.test_cross_sectional_ic(factor_values, price_data, forward_days)
+        hit_rate_results = self.test_cross_sectional_hit_rate(factor_values, price_data, forward_days)
+        quintile_results = self.test_cross_sectional_quintile(factor_values, price_data, forward_days)
         correlation_results = self.test_factor_correlation(factor_values)
-        decay_results = self.test_factor_decay(factor_values, price_data)
 
-        # Compile comprehensive results
-        comprehensive_results = {
-            'validation_date': pd.Timestamp.now().isoformat(),
-            'forward_period_days': forward_days,
+        # Determine validated factors (cross-sectional criteria)
+        validated_factors = self._determine_validated_factors_cross_sectional(
+            ic_results, hit_rate_results, quintile_results
+        )
+
+        # Compile results
+        results = {
             'ic_results': ic_results,
             'hit_rate_results': hit_rate_results,
             'quintile_results': quintile_results,
             'correlation_results': correlation_results,
-            'decay_results': decay_results,
-            'validated_factors': self._determine_validated_factors(ic_results, hit_rate_results, quintile_results)
+            'validated_factors': validated_factors
         }
 
-        return comprehensive_results
+        self.validation_results = results
+        return results
 
-    def _determine_validated_factors(self, ic_results: Dict, hit_rate_results: Dict,
-                                     quintile_results: Dict) -> List[str]:
+    def _determine_validated_factors_cross_sectional(self, ic_results: Dict, hit_rate_results: Dict,
+                                         quintile_results: Dict) -> List[str]:
         """
         Determine which factors pass validation across all tests.
 
         Criteria for cross-sectional factors:
+        - IC > threshold (primary criterion)
         - Hit rate > threshold (primary criterion)
         - Quintile monotonic (secondary criterion, if available)
-        
-        Note: IC is not applicable to cross-sectional factors (constant value per ticker)
         """
+        validated_factors = []
+
+        for factor_name in ic_results.keys():
+            ic_status = ic_results[factor_name].get('status', 'UNKNOWN')
+            hit_status = hit_rate_results.get(factor_name, {}).get('status', 'UNKNOWN')
+            quintile_status = quintile_results.get(factor_name, {}).get('status', 'UNKNOWN')
+
+            # Count passed tests
+            passed_tests = 0
+            total_tests = 0
+
+            # IC test (primary)
+            if ic_status in ['VALIDATED', 'GREAT']:
+                passed_tests += 1
+            total_tests += 1
+
+            # Hit rate test (primary)
+            if hit_status in ['VALIDATED', 'GREAT']:
+                passed_tests += 1
+            total_tests += 1
+
+            # Quintile test (secondary)
+            if quintile_status in ['VALIDATED', 'GREAT']:
+                passed_tests += 1
+            elif quintile_status != 'INSUFFICIENT_DATA':
+                total_tests += 1
+
+            # Validate if at least 2/3 primary tests pass
+            if passed_tests >= 2:
+                validated_factors.append(factor_name)
+
+        return validated_factors
         validated = []
 
         for factor in hit_rate_results.keys():

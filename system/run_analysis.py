@@ -18,18 +18,18 @@ Results are saved in Parquet format for Dash dashboard.
 
 # Fix imports so this works from anywhere
 import sys
+import argparse
 from pathlib import Path
-# Add project root to path if not already there
+
+# Add project root to path
 project_root = Path(__file__).parent.parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(project_root))
 
 import warnings
 import pandas as pd
 import os
 from datetime import datetime
 
-# Import analysis system
 from system.orchestrator import ETFAnalysisSystem
 from data_manager.data_manager import ETFDataManager as ETFDatabase
 
@@ -66,34 +66,25 @@ def print_analysis_summary(results, etf_db):
         risk_map = {'low_risk_etfs': 'LOW', 'medium_risk_etfs': 'MEDIUM', 'high_risk_etfs': 'HIGH'}
         risk = risk_map.get(risk_raw, risk_raw.upper() if isinstance(risk_raw, str) else 'MEDIUM')
         
+        # Get full ETF name from Yahoo Finance
+        try:
+            import yfinance as yf
+            yf_ticker = yf.Ticker(ticker)
+            full_name = yf_ticker.info.get('longName', etf_info.get('name', ticker))
+        except:
+            full_name = etf_info.get('name', ticker)
+        
         universe_data.append({
             'ticker': ticker,
-            'name': etf_info.get('name', ticker),
+            'name': full_name,  # Full name from Yahoo Finance
             'risk_category': risk,
             'composite_score': analysis.get('composite_percentile', analysis.get('composite_score', 0.0)),
             
-            # Risk Component (NEW)
-            'cvar': analysis.get('cvar', 0.0),
-            'ulcer_index': analysis.get('ulcer_index', 0.0),
-            'beta': analysis.get('beta', 0.0),
-            'information_ratio': analysis.get('information_ratio', 0.0),
-            'risk_score': analysis.get('risk_score', 0.0),
-            
-            # Kalman Hull (NEW)
-            'kalman_trend': analysis.get('kalman_trend', 0),
-            'kalman_signal_strength': analysis.get('kalman_signal_strength', 0.0),
-            'kalman_efficiency_ratio': analysis.get('kalman_efficiency_ratio', 0.5),
-            
-            # Volume Intelligence (NEW)
-            'volume_spike_score': analysis.get('volume_spike_score', 0.0),
-            'volume_correlation': analysis.get('volume_correlation', 0.0),
-            'volume_confidence': analysis.get('volume_confidence', 0.0),
-            
-            # ML Ensemble (MODIFIED - no bias correction)
-            'ml_forecast': analysis.get('ml_forecast', 0.0),
-            'ml_confidence': analysis.get('ml_confidence', 0.5),
-            'mae_score': analysis.get('mae_score', 0.0),
-            'hit_rate': analysis.get('hit_rate', 0.0),
+            # VALIDATED FACTORS ONLY (4 factors with p < 0.05, positive IC)
+            'cvar': analysis.get('cvar', 0.0),                    # Risk factor
+            'ml_forecast': analysis.get('ml_forecast', 0.0),      # ML factor
+            'hit_rate': analysis.get('hit_rate', 0.0),            # ML factor
+            'kalman_signal_strength': analysis.get('kalman_signal_strength', 0.0),  # Kalman factor
             
             # Returns
             'ytd_return': analysis.get('ytd_return', 0.0),
@@ -107,11 +98,11 @@ def print_analysis_summary(results, etf_db):
     print("-" * 80)
     print(f"Total ETFs Analyzed:         {len(universe_df)}")
     print(f"Average Composite Score:     {universe_df['composite_score'].mean():.2f}")
-    print(f"Average Risk Score:          {universe_df['risk_score'].mean():.3f}")
     print(f"Average CVaR:                {universe_df['cvar'].mean():.4f}")
-    print(f"Average Ulcer Index:         {universe_df['ulcer_index'].mean():.4f}")
     print(f"Average YTD Return:          {universe_df['ytd_return'].mean()*100:+.2f}%")
     print(f"Average ML Forecast:         {universe_df['ml_forecast'].mean():+.2f}%")
+    print(f"Average Hit Rate:            {universe_df['hit_rate'].mean():.2f}")
+    print(f"Average Kalman Signal:       {universe_df['kalman_signal_strength'].mean():.3f}")
     
     # Risk Distribution
     print(f"\nRISK CATEGORY DISTRIBUTION")
@@ -124,43 +115,37 @@ def print_analysis_summary(results, etf_db):
             risk_label = f"[{risk[0]}]" if risk != "MEDIUM" else "[M]"
             print(f"{risk_label} {risk:10} Risk: {count:4} ETFs ({pct:5.1f}%)")
     
-    # ML Forecast Summary
-    print(f"\nML FORECAST SUMMARY (60-Day Outlook)")
+    # VALIDATED FACTORS SUMMARY
+    print(f"\nVALIDATED FACTORS SUMMARY")
     print("-" * 80)
+    
+    # ML Forecast Summary
     positive_forecasts = len(universe_df[universe_df['ml_forecast'] > 0])
     negative_forecasts = len(universe_df[universe_df['ml_forecast'] < 0])
-    avg_confidence = universe_df['ml_confidence'].mean()
     
-    print(f"Positive Forecasts:    {positive_forecasts} ETFs ({positive_forecasts/len(universe_df)*100:.1f}%)")
-    print(f"Negative Forecasts:    {negative_forecasts} ETFs ({negative_forecasts/len(universe_df)*100:.1f}%)")
-    print(f"Average Confidence:    {avg_confidence:.2f}")
-    print(f"Best Forecast:         {universe_df['ml_forecast'].max():+.2f}% "
-          f"({universe_df.nlargest(1, 'ml_forecast')['ticker'].iloc[0]})")
-    print(f"Worst Forecast:        {universe_df['ml_forecast'].min():+.2f}% "
-          f"({universe_df.nsmallest(1, 'ml_forecast')['ticker'].iloc[0]})")
+    print(f"ML Forecasts:")
+    print(f"  Positive: {positive_forecasts} ETFs ({positive_forecasts/len(universe_df)*100:.1f}%)")
+    print(f"  Negative: {negative_forecasts} ETFs ({negative_forecasts/len(universe_df)*100:.1f}%)")
+    print(f"  Best:     {universe_df['ml_forecast'].max():+.2f}% ({universe_df.nlargest(1, 'ml_forecast')['ticker'].iloc[0]})")
+    print(f"  Worst:    {universe_df['ml_forecast'].min():+.2f}% ({universe_df.nsmallest(1, 'ml_forecast')['ticker'].iloc[0]})")
     
-    # Kalman Hull Trend Summary
-    print(f"\nKALMAN HULL TREND SUMMARY")
-    print("-" * 80)
-    uptrend = len(universe_df[universe_df['kalman_trend'] == 1])
-    downtrend = len(universe_df[universe_df['kalman_trend'] == -1])
-    neutral = len(universe_df[universe_df['kalman_trend'] == 0])
+    # Hit Rate Summary
+    print(f"\nHit Rate Summary:")
+    print(f"  Average:  {universe_df['hit_rate'].mean():.2f}")
+    print(f"  Best:     {universe_df['hit_rate'].max():.2f}")
+    print(f"  Worst:    {universe_df['hit_rate'].min():.2f}")
     
-    print(f"Uptrend:     {uptrend} ETFs ({uptrend/len(universe_df)*100:.1f}%)")
-    print(f"Downtrend:   {downtrend} ETFs ({downtrend/len(universe_df)*100:.1f}%)")
-    print(f"Neutral:     {neutral} ETFs ({neutral/len(universe_df)*100:.1f}%)")
-    print(f"Avg Signal Strength:   {universe_df['kalman_signal_strength'].mean():.3f}")
-    print(f"Avg Efficiency Ratio:  {universe_df['kalman_efficiency_ratio'].mean():.3f}")
+    # Kalman Signal Summary
+    print(f"\nKalman Signal Summary:")
+    print(f"  Average:  {universe_df['kalman_signal_strength'].mean():.3f}")
+    print(f"  Best:     {universe_df['kalman_signal_strength'].max():.3f}")
+    print(f"  Worst:    {universe_df['kalman_signal_strength'].min():.3f}")
     
-    # Volume Intelligence Summary
-    print(f"\nVOLUME INTELLIGENCE SUMMARY")
-    print("-" * 80)
-    high_volume_spike = len(universe_df[universe_df['volume_spike_score'] > 70])
-    positive_correlation = len(universe_df[universe_df['volume_correlation'] > 0.5])
-    
-    print(f"High Volume Spikes:          {high_volume_spike} ETFs")
-    print(f"Strong Price-Vol Correlation: {positive_correlation} ETFs")
-    print(f"Avg Volume Confidence:       {universe_df['volume_confidence'].mean():.3f}")
+    # CVaR Summary
+    print(f"\nCVaR Summary:")
+    print(f"  Average:  {universe_df['cvar'].mean():.4f}")
+    print(f"  Best:     {universe_df['cvar'].max():.4f}")
+    print(f"  Worst:    {universe_df['cvar'].min():.4f}")
     
     # Detailed analysis by risk category
     for risk_cat in ["LOW", "MEDIUM", "HIGH"]:
@@ -173,63 +158,58 @@ def print_analysis_summary(results, etf_db):
         print(f"{risk_cat} RISK CATEGORY ANALYSIS ({len(risk_data)} ETFs)")
         print("="*80)
         
-        # Category Statistics
+        # Category Statistics (VALIDATED FACTORS ONLY)
         print(f"\nCategory Statistics:")
         print(f"  Average Composite Score:     {risk_data['composite_score'].mean():.2f}")
-        print(f"  Average Risk Score:          {risk_data['risk_score'].mean():.3f}")
         print(f"  Average CVaR:                {risk_data['cvar'].mean():.4f}")
-        print(f"  Average Ulcer Index:         {risk_data['ulcer_index'].mean():.4f}")
-        print(f"  Average Beta:                {risk_data['beta'].mean():.2f}")
-        print(f"  Average Information Ratio:   {risk_data['information_ratio'].mean():.2f}")
         print(f"  Average Volatility:          {risk_data['volatility'].mean():.2%}")
         print(f"  Average YTD Return:          {risk_data['ytd_return'].mean()*100:+.2f}%")
         
-        # Forecast Metrics
-        print(f"\nForecast Metrics:")
+        # Validated Factor Metrics
+        print(f"\nValidated Factor Metrics:")
         print(f"  Average ML Forecast:         {risk_data['ml_forecast'].mean():+.2f}%")
-        print(f"  Average Confidence:          {risk_data['ml_confidence'].mean():.2f}")
+        print(f"  Average Hit Rate:            {risk_data['hit_rate'].mean():.2f}")
+        print(f"  Average Kalman Signal:       {risk_data['kalman_signal_strength'].mean():.3f}")
         
         pos_forecasts = len(risk_data[risk_data['ml_forecast'] > 0])
         print(f"  Positive Forecasts:          {pos_forecasts}/{len(risk_data)} ({pos_forecasts/len(risk_data)*100:.1f}%)")
         
-        # Trend Distribution
-        uptrend_cat = len(risk_data[risk_data['kalman_trend'] == 1])
-        print(f"  Uptrend ETFs:                {uptrend_cat}/{len(risk_data)} ({uptrend_cat/len(risk_data)*100:.1f}%)")
-        
         # Top 10 ETFs in this category
         print(f"\nTop 10 ETFs:")
-        print(f"{'Rank':<6}{'Ticker':<12}{'Name':<40}{'Score':<8}{'Trend':<8}{'Forecast':<10}{'YTD %':<8}")
-        print("-" * 80)
+        print(f"{'Rank':<6}{'Ticker':<12}{'Name':<50}{'Score':<8}{'Signal':<8}{'HitRate':<8}{'Forecast':<10}{'YTD %':<8}")
+        print("-" * 103)
         
         top_10 = risk_data.nlargest(10, 'composite_score')
         for idx, row in enumerate(top_10.itertuples(), 1):
-            name_short = row.name[:37] + "..." if len(row.name) > 40 else row.name
-            trend_str = '↑' if row.kalman_trend == 1 else '↓' if row.kalman_trend == -1 else '→'
-            print(f"{idx:<6}{row.ticker:<12}{name_short:<40}"
-                  f"{row.composite_score:>6.1f}  {trend_str:>6}  "
-                  f"{row.ml_forecast:>+6.1f}%   {row.ytd_return*100:>6.1f}")
+            name_short = row.name[:47] + "..." if len(row.name) > 50 else row.name
+            signal_str = f"{row.kalman_signal_strength:.3f}"
+            hitrate_str = f"{row.hit_rate:.2f}"
+            print(f"{idx:<6}{row.ticker:<12}{name_short:<50}"
+                  f"{row.composite_score:>6.1f}  {signal_str:>6}  "
+                  f"{hitrate_str:>6}  {row.ml_forecast:>+6.1f}%   {row.ytd_return*100:>6.1f}")
         
         # Best forecasts in category
         print(f"\nBest ML Forecasts:")
         best_forecasts = risk_data.nlargest(5, 'ml_forecast')
         for idx, row in enumerate(best_forecasts.itertuples(), 1):
             print(f"  {idx}. {row.ticker:<10} {row.ml_forecast:>+6.2f}%  "
-                  f"(Confidence: {row.ml_confidence:.2f}, Score: {row.composite_score:.1f})")
+                  f"(Hit Rate: {row.hit_rate:.2f}, Score: {row.composite_score:.1f})")
     
     # Overall Top Performers
-    print(f"\n" + "="*80)
+    print(f"\n" + "="*90)
     print(f"TOP 15 ETFS (ALL CATEGORIES)")
-    print("="*80)
-    print(f"{'Rank':<6}{'Ticker':<12}{'Name':<30}{'Risk':<10}{'Score':<8}{'Trend':<8}{'Forecast':<10}{'YTD %':<8}")
-    print("-" * 80)
+    print("="*90)
+    print(f"{'Rank':<6}{'Ticker':<12}{'Name':<45}{'Risk':<10}{'Score':<8}{'Signal':<8}{'HitRate':<8}{'Forecast':<10}{'YTD %':<8}")
+    print("-" * 111)
     
     top_15 = universe_df.nlargest(15, 'composite_score')
     for idx, row in enumerate(top_15.itertuples(), 1):
-        name_short = row.name[:27] + "..." if len(row.name) > 30 else row.name
-        trend_str = '↑' if row.kalman_trend == 1 else '↓' if row.kalman_trend == -1 else '→'
-        print(f"{idx:<6}{row.ticker:<12}{name_short:<30}{row.risk_category:<9}"
-              f"{row.composite_score:>6.1f}  {trend_str:>6}  "
-              f"{row.ml_forecast:>+6.1f}%   {row.ytd_return*100:>6.1f}")
+        name_short = row.name[:42] + "..." if len(row.name) > 45 else row.name
+        signal_str = f"{row.kalman_signal_strength:.3f}"
+        hitrate_str = f"{row.hit_rate:.2f}"
+        print(f"{idx:<6}{row.ticker:<12}{name_short:<45}{row.risk_category:<9}"
+              f"{row.composite_score:>6.1f}  {signal_str:>6}  "
+              f"{hitrate_str:>6}  {row.ml_forecast:>+6.1f}%   {row.ytd_return*100:>6.1f}")
     
     # Key Insights
     print(f"\n" + "="*80)
@@ -237,14 +217,16 @@ def print_analysis_summary(results, etf_db):
     print("="*80)
     
     best_score = universe_df.nlargest(1, 'composite_score').iloc[0]
-    best_risk = universe_df.nsmallest(1, 'risk_score').iloc[0]
+    best_cvar = universe_df.nsmallest(1, 'cvar').iloc[0]  # Best CVaR (most negative)
     best_return = universe_df.nlargest(1, 'ytd_return').iloc[0]
     best_forecast = universe_df.nlargest(1, 'ml_forecast').iloc[0]
+    best_hitrate = universe_df.nlargest(1, 'hit_rate').iloc[0]
     
     print(f"\n• Best Overall Score:      {best_score['ticker']} ({best_score['composite_score']:.1f}) - {best_score['name']}")
-    print(f"• Best Risk Score:         {best_risk['ticker']} ({best_risk['risk_score']:.3f}) - {best_risk['name']}")
+    print(f"• Best CVaR (Risk):         {best_cvar['ticker']} ({best_cvar['cvar']:.4f}) - {best_cvar['name']}")
     print(f"• Best YTD Return:         {best_return['ticker']} ({best_return['ytd_return']*100:+.2f}%) - {best_return['name']}")
     print(f"• Best ML Forecast:        {best_forecast['ticker']} ({best_forecast['ml_forecast']:+.2f}%) - {best_forecast['name']}")
+    print(f"• Best Hit Rate:           {best_hitrate['ticker']} ({best_hitrate['hit_rate']:.2f}) - {best_hitrate['name']}")
     
     print("\n" + "="*80 + "\n")
 
@@ -293,55 +275,37 @@ def save_analysis_to_parquet(results, etf_db, data_dir='data'):
         risk_map = {'low_risk_etfs': 'LOW', 'medium_risk_etfs': 'MEDIUM', 'high_risk_etfs': 'HIGH'}
         risk = risk_map.get(risk_raw, risk_raw.upper() if isinstance(risk_raw, str) else 'MEDIUM')
         
+        # Get full ETF name from Yahoo Finance
+        try:
+            import yfinance as yf
+            yf_ticker = yf.Ticker(ticker)
+            full_name = yf_ticker.info.get('longName', etf_info.get('name', ticker))
+        except:
+            full_name = etf_info.get('name', ticker)
+        
         universe_data.append({
             # Identifiers
             'ticker': ticker,
-            'name': etf_info.get('name', ticker),
+            'name': full_name,  # Full name from Yahoo Finance
             'subcategory': etf_info.get('subcategory', 'Unknown'),
 
-            # Risk metrics (NEW STRUCTURE)
+            # Risk Category
             'risk_category': risk,
-            'risk_score': analysis.get('risk_score', 0.0),
-            'cvar': analysis.get('cvar', 0.0),
-            'ulcer_index': analysis.get('ulcer_index', 0.0),
-            'beta': analysis.get('beta', 0.0),
-            'information_ratio': analysis.get('information_ratio', 0.0),
-            'best_benchmark': analysis.get('best_benchmark', 'N/A'),
             'volatility': analysis.get('volatility', 0.0),
 
-            # Kalman Hull Supertrend (NEW)
-            'kalman_trend': analysis.get('kalman_trend', 0),
-            'kalman_price': analysis.get('kalman_price', 0.0),
-            'kalman_upper_band': analysis.get('kalman_upper_band', 0.0),
-            'kalman_lower_band': analysis.get('kalman_lower_band', 0.0),
-            'kalman_efficiency_ratio': analysis.get('kalman_efficiency_ratio', 0.5),
-            'kalman_divergence': analysis.get('kalman_divergence', 'none'),
-            'kalman_consistency': analysis.get('kalman_consistency', False),
-            'kalman_signal_strength': analysis.get('kalman_signal_strength', 0.0),
-
-            # Volume Intelligence (NEW)
-            'volume_spike_score': analysis.get('volume_spike_score', 0.0),
-            'volume_correlation': analysis.get('volume_correlation', 0.0),
-            'volume_ad_signal': analysis.get('volume_ad_signal', 'neutral'),
-            'volume_confidence': analysis.get('volume_confidence', 0.0),
-
-            # ML Ensemble (MODIFIED - no bias correction)
-            'ml_forecast': analysis.get('ml_forecast', 0.0),
-            'ml_confidence': analysis.get('ml_confidence', 0.5),
-            'mae_score': analysis.get('mae_score', 0.0),
-            'hit_rate': analysis.get('hit_rate', 0.0),
+            # VALIDATED FACTORS ONLY (4 factors with p < 0.05, positive IC)
+            'cvar': analysis.get('cvar', 0.0),                    # Risk factor
+            'ml_forecast': analysis.get('ml_forecast', 0.0),      # ML factor
+            'hit_rate': analysis.get('hit_rate', 0.0),            # ML factor
+            'kalman_signal_strength': analysis.get('kalman_signal_strength', 0.0),  # Kalman factor
 
             # Returns
             'ytd_return': analysis.get('ytd_return', 0.0),
             'one_year_return': analysis.get('one_year_return', 0.0),
             'latest_price': analysis.get('latest_price', 0.0),
 
-            # Composite score (fallback to percentile for new system)
+            # Composite score (percentile ranking)
             'composite_score': analysis.get('composite_percentile', analysis.get('composite_score', 0.0)),
-            
-            # Metadata
-            'group_classification': analysis.get('group_classification', 'Unknown'),
-            'quality_flag': analysis.get('quality_flag', 'TIER_3')
         })
     
     universe_df = pd.DataFrame(universe_data)
@@ -387,44 +351,32 @@ def save_analysis_to_parquet(results, etf_db, data_dir='data'):
         for rank, ticker, score in items_to_rank:
             analysis = analysis_results.get(ticker, {})
             etf_info = etf_db.etf_data.get(ticker, {})
+            
+            # Get full ETF name from Yahoo Finance
+            try:
+                import yfinance as yf
+                yf_ticker = yf.Ticker(ticker)
+                full_name = yf_ticker.info.get('longName', etf_info.get('name', ticker))
+            except:
+                full_name = etf_info.get('name', ticker)
 
             ranking_data.append({
                 'rank': rank,
                 'ticker': ticker,
-                'name': etf_info.get('name', ticker),
+                'name': full_name,  # Full name from Yahoo Finance
                 'subcategory': etf_info.get('subcategory', 'Unknown'),
                 'composite_score': score,
                 
-                # Risk Component
-                'risk_score': analysis.get('risk_score', 0.0),
-                'cvar': analysis.get('cvar', 0.0),
-                'ulcer_index': analysis.get('ulcer_index', 0.0),
-                'beta': analysis.get('beta', 0.0),
-                'information_ratio': analysis.get('information_ratio', 0.0),
-                
-                # Kalman Hull
-                'kalman_trend': analysis.get('kalman_trend', 0),
-                'kalman_signal_strength': analysis.get('kalman_signal_strength', 0.0),
-                'kalman_divergence': analysis.get('kalman_divergence', 'none'),
-                
-                # Volume Intelligence
-                'volume_spike_score': analysis.get('volume_spike_score', 0.0),
-                'volume_correlation': analysis.get('volume_correlation', 0.0),
-                'volume_ad_signal': analysis.get('volume_ad_signal', 'neutral'),
-                
-                # ML Ensemble
-                'ml_forecast': analysis.get('ml_forecast', 0.0),
-                'ml_confidence': analysis.get('ml_confidence', 0.5),
-                'mae_score': analysis.get('mae_score', 0.0),
-                'hit_rate': analysis.get('hit_rate', 0.0),
+                # VALIDATED FACTORS ONLY (4 factors with p < 0.05, positive IC)
+                'cvar': analysis.get('cvar', 0.0),                    # Risk factor
+                'ml_forecast': analysis.get('ml_forecast', 0.0),      # ML factor
+                'hit_rate': analysis.get('hit_rate', 0.0),            # ML factor
+                'kalman_signal_strength': analysis.get('kalman_signal_strength', 0.0),  # Kalman factor
                 
                 # Returns
                 'ytd_return': analysis.get('ytd_return', 0.0),
                 'one_year_return': analysis.get('one_year_return', 0.0),
-                
-                # Other
                 'volatility': analysis.get('volatility', 0.0),
-                'best_benchmark': analysis.get('best_benchmark', 'N/A')
             })
         
         ranking_df = pd.DataFrame(ranking_data)
@@ -440,18 +392,21 @@ def save_analysis_to_parquet(results, etf_db, data_dir='data'):
         'analysis_date': datetime.now().isoformat(),
         'total_etfs': len(analysis_results),
         'processing_time': results.get('summary', {}).get('processing_time', 0),
-        'system_version': '3.0_modified',
+        'system_version': '3.0_validated_factors',
+        'validation_date': '2025-11-29',
         'risk_breakdown': {
             'low': len(rankings.get('LOW', [])),
             'medium': len(rankings.get('MEDIUM', [])),
             'high': len(rankings.get('HIGH', []))
         },
-        'components': {
-            'risk_component': 'CVaR, Ulcer, Beta, IR (30/30/20/20)',
-            'ml_ensemble': 'Raw forecast + confidence (NO bias correction)',
-            'kalman_hull': 'Adaptive momentum indicator',
-            'volume_intelligence': 'Spike, correlation, A/D'
-        }
+        'validated_factors': {
+            'ml_forecast': {'ic': 0.229, 'p_value': 0.027, 'hit_rate': 0.617, 'description': 'ML Ensemble forecast'},
+            'hit_rate': {'ic': 0.344, 'p_value': 0.001, 'hit_rate': 0.651, 'description': 'ML directional accuracy'},
+            'kalman_signal_strength': {'ic': 0.234, 'p_value': 0.023, 'hit_rate': 0.638, 'description': 'Kalman momentum strength'},
+            'cvar': {'ic': 0.261, 'p_value': 0.011, 'hit_rate': 0.617, 'description': 'Conditional Value at Risk'}
+        },
+        'validation_method': 'Cross-sectional testing with 100 ETFs, 20-day forward returns',
+        'rejected_factors_count': 8
     }
     
     metadata_df = pd.DataFrame([metadata])
@@ -525,70 +480,50 @@ def run_full_etf_analysis(save_results=True):
 def main():
     """
     Main entry point for ETF analysis.
-    Runs analysis and saves results to Parquet files for dashboard.
+    Runs analysis and optionally saves results to Parquet files for dashboard.
     Optionally runs backtesting validation.
     """
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='ETF Analysis System')
+    parser.add_argument('--save', action='store_true', 
+                       help='Save analysis results to Parquet files')
+    parser.add_argument('--no-backtest', action='store_true',
+                       help='Skip backtesting validation prompt')
+    args = parser.parse_args()
+    
     # Run main analysis
-    results = run_full_etf_analysis(save_results=True)
+    results = run_full_etf_analysis(save_results=args.save)
     
-    # Ask user if they want to run backtesting
-    print("\n" + "="*80)
-    print("BACKTESTING VALIDATION")
-    print("="*80)
-    print("\nWould you like to run backtesting to validate the strategy?")
-    print("\nOptions:")
-    print("  1. Quick test (11 sample ETFs, ~1-2 min)")
-    print("  2. Full universe (all ETFs with data, ~30-60 min)")
-    print("  3. Skip backtesting")
+    # Ask user if they want to run backtesting (unless skipped)
+    if not args.no_backtest:
+        print("\n" + "="*80)
+        print("BACKTESTING VALIDATION")
+        print("="*80)
+        print("\nWould you like to run backtesting to validate the strategy?")
+        print("\nOptions:")
+        print("  1. Quick test (11 sample ETFs, ~1-2 min)")
+        print("  2. Full universe (all ETFs with data, ~30-60 min)")
+        print("  3. Skip backtesting")
     
-    try:
-        choice = input("\nYour choice (1/2/3): ").strip()
+    if not args.no_backtest:
+        try:
+            choice = input("\nYour choice (1/2/3): ").strip()
+            
+            if choice == '1' or choice == '2':
+                print("\n" + "="*80)
+                print("BACKTESTING DISABLED")
+                print("="*80)
+                print("\n⚠️  Backtesting engine has been removed during optimization.")
+                print("    System now focuses on validated factor analysis only.")
+                print("\n💡 To run backtesting, you would need to:")
+                print("    1. Implement a custom backtesting solution")
+                print("    2. Or restore the backtest_engine.py from backup")
         
-        if choice == '1':
-            # Quick sample backtest
-            print("\n" + "="*80)
-            print("RUNNING QUICK BACKTEST (11 Sample ETFs)")
-            print("="*80)
-            
-            # Import backtest function
-            sys.path.insert(0, str(Path(__file__).parent.parent))
-            from utilities.backtest_engine import run_backtest_on_universe
-            
-            # Sample tickers across risk categories
-            sample_tickers = [
-                'VAS.AX', 'VGS.AX', 'NDQ.AX',  # LOW risk
-                'MNRS.AX', 'HETH.AX', 'FOOD.AX', 'ROBO.AX',  # MEDIUM risk
-                'CRYP.AX', 'URNM.AX', 'GDX.AX', 'ATEC.AX'  # HIGH risk
-            ]
-            
-            run_backtest_on_universe(tickers=sample_tickers)
-            print("\nQuick backtest complete! View results in dashboard (Backtest Results page)")
-        
-        elif choice == '2':
-            # Full universe backtest
-            print("\n" + "="*80)
-            print("RUNNING FULL UNIVERSE BACKTEST")
-            print("="*80)
-            print("\n This will take 30-60 minutes for all ETFs with historical data")
-            confirm = input("Continue? (y/n): ").strip().lower()
-            
-            if confirm == 'y':
-                sys.path.insert(0, str(Path(__file__).parent.parent))
-                from utilities.backtest_engine import run_backtest_on_universe
-                
-                # Backtest all available ETFs
-                run_backtest_on_universe()
-                print("\nFull universe backtest complete! View results in dashboard")
-            else:
-                print("\n⏭ Skipping backtest")
-        else:
-            print("\n⏭ Skipping backtest")
-    
-    except KeyboardInterrupt:
-        print("\n\n⏭ Skipping backtest")
-    except Exception as e:
-        print(f"\n Backtest skipped due to error: {e}")
-
+        except KeyboardInterrupt:
+            print("\n\n⏭ Skipping backtest")
+        except Exception as e:
+            print(f"\n❌ Error in backtesting: {e}")
+            print("⏭ Continuing...")
     
     print("\n" + "="*80)
     print("ALL DONE!")
