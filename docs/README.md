@@ -1,39 +1,39 @@
 # 📚 Documentation Index
 
-**Version:** 2.0 (Production)  
-**Last Updated:** October 25, 2025  
-**Status:** ✅ Production Ready
+**Version:** Phase 3 Complete (December 2025)  
+**Last Updated:** December 3, 2025  
+**Status:** ✅ Production Ready with Advanced ML & Validation
 
 ---
 
 ## 🚀 Start Here
 
 **New users:**
-1. **[QUICK_START.md](QUICK_START.md)** - Get running in 5 minutes
-2. **[guides/USER_GUIDE.md](guides/USER_GUIDE.md)** - Complete usage guide
+1. **[QUICK_START.md](guides/QUICK_START.md)** - Get running in 5 minutes
+2. **[USER_GUIDE.md](guides/USER_GUIDE.md)** - Complete usage guide
 
 **System operators:**
-- **[READY_TO_RUN.md](READY_TO_RUN.md)** - Pre-flight checklist
-- **[guides/BACKTEST_GUIDE.md](guides/BACKTEST_GUIDE.md)** - Backtesting workflow
+- **[PHASE1_COMPLETION_REPORT.md](PHASE1_COMPLETION_REPORT.md)** - Data pipeline status
+- **[PHASE2_COMPLETION_REPORT.md](PHASE2_COMPLETION_REPORT.md)** - ML enhancements
+- **[PHASE3_COMPLETION_REPORT.md](PHASE3_COMPLETION_REPORT.md)** - Validation system
 
 **Developers:**
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System design
-- **[guides/DEVELOPMENT_GUIDE.md](guides/DEVELOPMENT_GUIDE.md)** - Development guide
+- **[ARCHITECTURE.md](reference/ARCHITECTURE.md)** - System design
+- **[DEVELOPMENT_GUIDE.md](guides/DEVELOPMENT_GUIDE.md)** - Development guide
 
 ---
 
 ## 📖 Documentation Structure
 
-### **Core Documentation** (This Directory)
+### **Phase Completion Reports** (This Directory)
 
 | File | Purpose |
 |------|---------|
-| **QUICK_START.md** | Fast start guide (5 min) |
-| **READY_TO_RUN.md** | System readiness checklist |
-| **CLEANUP_SUMMARY.md** | Recent cleanup record |
-| **ARCHITECTURE.md** | System architecture & design |
-| **SPECIFICATION.md** | Technical specifications |
-| **SYSTEM_OVERVIEW.md** | High-level system overview |
+| **PHASE1_COMPLETION_REPORT.md** | Data pipeline & regime framework |
+| **PHASE2_COMPLETION_REPORT.md** | ML model improvements |
+| **PHASE3_COMPLETION_REPORT.md** | Advanced validation & risk management |
+| **SYSTEM_REBUILD_SUMMARY.md** | System rebuild documentation |
+| **CRITICAL_BUG_FIX_METRIC_NAMES.md** | Critical bug fixes record |
 
 ### **User Guides** (`guides/`)
 
@@ -43,25 +43,18 @@
 | **BACKTEST_GUIDE.md** | Backtesting workflow |
 | **DEVELOPMENT_GUIDE.md** | Developer setup & practices |
 | **TESTING_GUIDE.md** | Testing procedures |
+| **QUICK_START.md** | Fast start guide (5 min) |
 
 ### **Technical Reference** (`reference/`)
 
 | File | Purpose |
 |------|---------|
+| **ARCHITECTURE.md** | System architecture & design |
+| **SPECIFICATION.md** | Technical specifications |
+| **SYSTEM_OVERVIEW.md** | High-level system overview |
 | **DASHBOARD_FEATURES.md** | Dashboard capabilities |
-| **GROWTH_ENHANCEMENTS.md** | Growth optimization features |
-| **MACRO_GEO_CACHING.md** | Caching implementation |
-| **VALIDATION_IMPLEMENTATION.md** | Walk-forward validation |
+| **VALIDATION_IMPLEMENTATION.md** | Advanced validation system |
 | **RETURN_CALCULATIONS_ANALYSIS.md** | Return calculation methods |
-| **1Y_RETURN_METHODOLOGY.md** | 1-year return methodology |
-
-### **Historical Archive** (`archive/`)
-
-- Bug diagnosis documents
-- Code review history
-- Changelog records
-- Deprecated documentation
-- Old README versions
 
 ---
 
@@ -70,57 +63,50 @@
 ### **I want to...**
 
 **Use the system:**
-- Run analysis → [QUICK_START.md](QUICK_START.md)
-- View dashboard → [guides/USER_GUIDE.md](guides/USER_GUIDE.md) → Dashboard section
-- Run backtests → [guides/BACKTEST_GUIDE.md](guides/BACKTEST_GUIDE.md)
+- Run analysis → [QUICK_START.md](guides/QUICK_START.md)
+- View dashboard → [USER_GUIDE.md](guides/USER_GUIDE.md) → Dashboard section
+- Understand validation → [PHASE3_COMPLETION_REPORT.md](PHASE3_COMPLETION_REPORT.md)
 
 **Understand the system:**
-- High-level overview → [SYSTEM_OVERVIEW.md](SYSTEM_OVERVIEW.md)
-- Technical details → [SPECIFICATION.md](SPECIFICATION.md)
-- Architecture → [ARCHITECTURE.md](ARCHITECTURE.md)
+- Phase 1 (Data) → [PHASE1_COMPLETION_REPORT.md](PHASE1_COMPLETION_REPORT.md)
+- Phase 2 (ML) → [PHASE2_COMPLETION_REPORT.md](PHASE2_COMPLETION_REPORT.md)
+- Phase 3 (Validation) → [PHASE3_COMPLETION_REPORT.md](PHASE3_COMPLETION_REPORT.md)
+- Architecture → [ARCHITECTURE.md](reference/ARCHITECTURE.md)
 
 **Modify the system:**
-- Development setup → [guides/DEVELOPMENT_GUIDE.md](guides/DEVELOPMENT_GUIDE.md)
-- Test changes → [guides/TESTING_GUIDE.md](guides/TESTING_GUIDE.md)
-- Understand features → [reference/](reference/)
-
-**Troubleshoot:**
-- Pre-flight check → [READY_TO_RUN.md](READY_TO_RUN.md)
-- Testing guide → [guides/TESTING_GUIDE.md](guides/TESTING_GUIDE.md)
-- Historical fixes → [archive/](archive/)
+- Development setup → [DEVELOPMENT_GUIDE.md](guides/DEVELOPMENT_GUIDE.md)
+- Test changes → [TESTING_GUIDE.md](guides/TESTING_GUIDE.md)
+- Technical specs → [SPECIFICATION.md](reference/SPECIFICATION.md)
 
 ---
 
 ## 📊 System Summary
 
 ### **What it does:**
-Analyzes 385 Australian ETFs using:
-- Risk metrics (CVaR, Ulcer Index, Beta)
-- Technical indicators (Kalman Hull Supertrend)
-- ML forecasting (Random Forest + Ridge Regression)
-- Volume intelligence
-- Macro/geopolitical risk assessment
+Analyzes 377+ Australian ETFs using:
+- **Regime Detection**: 5-year historical analysis with cross-asset correlations
+- **ML Ensemble**: RandomForest + Ridge with regime-aware features
+- **Advanced Validation**: Nested CV + expanding windows + bootstrap CI
+- **Risk Management**: Confidence flagging (High/Medium/Low)
+- **Interactive Dashboard**: Real-time visualization
 
 ### **Key Features:**
-- ✅ Interactive Dashboard (6 pages)
-- ✅ Growth Opportunities Ranking
-- ✅ Full Universe Backtesting (363 ETFs)
-- ✅ Real-time Macro/Geo Analysis
-- ✅ Risk-adjusted Scoring
+- ✅ Regime-aware ML models with external data integration
+- ✅ Advanced validation framework with statistical rigor
+- ✅ Confidence flagging and stability assessment
+- ✅ Interactive dashboard with real-time visualizations
+- ✅ Production-ready with comprehensive testing
 
 ### **Usage:**
 ```bash
 # Run full analysis
-python3 run_analysis.py
+python run_analysis.py
 
 # Launch dashboard
-python3 run_dashboard.py
+python run_dashboard.py
 
-# Update historical data
-python3 scripts/download_all_etf_data.py
-
-# Run backtest
-python3 scripts/run_backtest.py
+# Phase 3 validation testing
+python -c "from analyzers.advanced_validation import *; print('Phase 3 ready')"
 ```
 
 ---
@@ -130,60 +116,66 @@ python3 scripts/run_backtest.py
 ```
 docs/
 ├── README.md                           # ← You are here
-├── QUICK_START.md                      # Fast start guide
-├── READY_TO_RUN.md                     # Pre-flight checklist
-├── CLEANUP_SUMMARY.md                  # Recent cleanup
-├── ARCHITECTURE.md                     # System design
-├── SPECIFICATION.md                    # Technical specs
-├── SYSTEM_OVERVIEW.md                  # Overview
+├── PHASE1_COMPLETION_REPORT.md         # Data pipeline & regime
+├── PHASE2_COMPLETION_REPORT.md         # ML enhancements
+├── PHASE3_COMPLETION_REPORT.md         # Advanced validation
+├── SYSTEM_REBUILD_SUMMARY.md           # System rebuild docs
+├── CRITICAL_BUG_FIX_METRIC_NAMES.md    # Bug fixes record
 │
 ├── guides/                             # User guides
 │   ├── USER_GUIDE.md                  # Complete manual
 │   ├── BACKTEST_GUIDE.md              # Backtesting
 │   ├── DEVELOPMENT_GUIDE.md           # Development
-│   └── TESTING_GUIDE.md               # Testing
+│   ├── TESTING_GUIDE.md               # Testing
+│   └── QUICK_START.md                 # Fast start
 │
-├── reference/                          # Technical docs
-│   ├── DASHBOARD_FEATURES.md
-│   ├── GROWTH_ENHANCEMENTS.md
-│   ├── MACRO_GEO_CACHING.md
-│   ├── VALIDATION_IMPLEMENTATION.md
-│   ├── RETURN_CALCULATIONS_ANALYSIS.md
-│   └── 1Y_RETURN_METHODOLOGY.md
-│
-└── archive/                            # Historical
-    ├── BACKTEST_DIAGNOSIS.md
-    ├── BUG_FIXED_MULTI_LEVEL_COLUMNS.md
-    ├── BACKTEST_FIX.md
-    ├── CHANGELOG.md
-    ├── CODE_REVIEW_HISTORY.md
-    ├── ORGANIZATION_COMPLETE.md
-    ├── SYSTEM_READY.md
-    └── [3 more old docs]
+└── reference/                          # Technical docs
+    ├── ARCHITECTURE.md                # System design
+    ├── SPECIFICATION.md               # Technical specs
+    ├── SYSTEM_OVERVIEW.md             # Overview
+    ├── DASHBOARD_FEATURES.md          # Dashboard
+    ├── VALIDATION_IMPLEMENTATION.md   # Validation system
+    └── RETURN_CALCULATIONS_ANALYSIS.md # Return methods
 ```
 
 ---
 
-## 🔄 Version History
+## 🔄 Phase History
 
-**v2.0 (October 25, 2025):**
-- Cleaned & organized workspace
-- All docs in `docs/` directory
-- Updated main README
-- Scripts moved to `scripts/`
-- Complete documentation index
+**Phase 3 (December 2025):**
+- ✅ Advanced validation system complete
+- ✅ Nested cross-validation working
+- ✅ Bootstrap confidence intervals operational
+- ✅ Confidence flagging system implemented
+- ✅ Model stability assessment functional
 
-**v3.1 (October 25, 2025):**
-- Growth-optimized scoring
-- Integrated backtesting
-- Full universe capability
-- Dashboard enhancements
+**Phase 2 (November 2025):**
+- ✅ ML ensemble with regime-aware features
+- ✅ Enhanced feature engineering
+- ✅ External data integration
+- ✅ Look-ahead bias fixes
 
-**v3.0 (October 23, 2025):**
-- Macro/Geo caching
-- Bug fixes
-- Documentation reorganization
+**Phase 1 (October 2025):**
+- ✅ Data pipeline infrastructure
+- ✅ Regime detection framework
+- ✅ Cross-asset correlation system
+- ✅ External data sources
 
 ---
 
-**Need help?** Start with [QUICK_START.md](QUICK_START.md) or check the [guides/](guides/) folder.
+## 🎯 Current Status
+
+**Phase 3 Complete - Production Ready**
+- All three phases successfully implemented
+- Advanced validation framework operational
+- Confidence flagging system working
+- Dashboard integration complete
+- Documentation updated and organized
+
+**Next Steps:**
+- Phase 4: Production deployment and monitoring
+- Phase 5: Enhanced features and optimization
+
+---
+
+**Need help?** Start with [QUICK_START.md](guides/QUICK_START.md) or check the phase completion reports.
