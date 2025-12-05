@@ -1,0 +1,405 @@
+{
+  "final_features": [
+    "signal_quality",
+    "volatility_regime",
+    "gold_equity_corr",
+    "momentum",
+    "cross_asset_dispersion",
+    "vix_rates_corr",
+    "aud_gold_corr",
+    "macd_signal",
+    "equity_bonds_corr",
+    "regime_stability",
+    "regime_confidence",
+    "volume_confirmation"
+  ],
+  "feature_count": 12,
+  "samples_per_feature": 31.0,
+  "temporal_robustness": "HIGH",
+  "temporal_performance": {
+    "rf_improvement": 29.213416196262237,
+    "ridge_improvement": 21.158731156982206,
+    "baseline_mae": 0.046872022569108135,
+    "rf_mae": 0.03317910353638861,
+    "ridge_mae": 0.03695449732587052,
+    "robustness": "HIGH",
+    "feature_importance": [
+      {
+        "feature": "momentum",
+        "importance": 0.26363201543661297
+      },
+      {
+        "feature": "volatility",
+        "importance": 0.15482249502125742
+      },
+      {
+        "feature": "macd_signal",
+        "importance": 0.12075612325022864
+      },
+      {
+        "feature": "signal_quality",
+        "importance": 0.11499964912437526
+      },
+      {
+        "feature": "volatility_level",
+        "importance": 0.11317127792427423
+      },
+      {
+        "feature": "macd_histogram",
+        "importance": 0.11169631761245867
+      },
+      {
+        "feature": "vix_rates_corr",
+        "importance": 0.02390063732757353
+      },
+      {
+        "feature": "equity_bonds_corr",
+        "importance": 0.023196096549545797
+      },
+      {
+        "feature": "gold_equity_corr",
+        "importance": 0.02232766472832669
+      },
+      {
+        "feature": "cross_asset_dispersion",
+        "importance": 0.020909732855230134
+      },
+      {
+        "feature": "volume_confirmation",
+        "importance": 0.012822568117270318
+      },
+      {
+        "feature": "aud_gold_corr",
+        "importance": 0.00975344610167902
+      },
+      {
+        "feature": "volatility_regime",
+        "importance": 0.007148847640475444
+      },
+      {
+        "feature": "regime_stability",
+        "importance": 0.0006939157678180854
+      },
+      {
+        "feature": "regime_confidence",
+        "importance": 0.0001692125428738284
+      }
+    ]
+  },
+  "correlation_analysis": {
+    "correlation_matrix": {
+      "volatility": {
+        "volatility": 1.0,
+        "volatility_level": 0.7826206063253179,
+        "signal_quality": -0.7824283801609503,
+        "volatility_regime": 0.7304723280244058,
+        "gold_equity_corr": -0.3829479570175584,
+        "momentum": 0.0254856717609592,
+        "cross_asset_dispersion": 0.40748771790391375,
+        "vix_rates_corr": -0.25298883879941286,
+        "aud_gold_corr": -0.10484701057771738,
+        "macd_histogram": -0.19248211280805594,
+        "macd_signal": -0.19248211280805594,
+        "equity_bonds_corr": 0.06561924499336423,
+        "regime_stability": -0.030713623142234185,
+        "regime_confidence": 0.08264250070730172,
+        "volume_confirmation": -0.030965649787744243
+      },
+      "volatility_level": {
+        "volatility": 0.7826206063253179,
+        "volatility_level": 1.0,
+        "signal_quality": -0.9973686964242086,
+        "volatility_regime": 0.9169995689626385,
+        "gold_equity_corr": -0.46447972915999297,
+        "momentum": 0.015423925939120998,
+        "cross_asset_dispersion": 0.4923944572031418,
+        "vix_rates_corr": -0.32856688690869057,
+        "aud_gold_corr": -0.08496776664306925,
+        "macd_histogram": -0.23490265925844603,
+        "macd_signal": -0.23490265925844603,
+        "equity_bonds_corr": 0.11478101031858431,
+        "regime_stability": -0.03578554894477375,
+        "regime_confidence": 0.09224410994492488,
+        "volume_confirmation": 0.000565894854138333
+      },
+      "signal_quality": {
+        "volatility": -0.7824283801609503,
+        "volatility_level": -0.9973686964242086,
+        "signal_quality": 1.0,
+        "volatility_regime": -0.9277326467476583,
+        "gold_equity_corr": 0.5015464818421059,
+        "momentum": -0.03214513479664891,
+        "cross_asset_dispersion": -0.5259882679030166,
+        "vix_rates_corr": 0.33665930458055665,
+        "aud_gold_corr": 0.09313455298596385,
+        "macd_histogram": 0.2256527613399255,
+        "macd_signal": 0.2256527613399255,
+        "equity_bonds_corr": -0.12871451676739473,
+        "regime_stability": 0.037513606761528116,
+        "regime_confidence": -0.09587246039072757,
+        "volume_confirmation": 0.0037113796118473006
+      },
+      "volatility_regime": {
+        "volatility": 0.7304723280244058,
+        "volatility_level": 0.9169995689626385,
+        "signal_quality": -0.9277326467476583,
+        "volatility_regime": 1.0,
+        "gold_equity_corr": -0.5396197313463387,
+        "momentum": 0.1032906050466126,
+        "cross_asset_dispersion": 0.5480176125833074,
+        "vix_rates_corr": -0.347472185118004,
+        "aud_gold_corr": -0.0900721263649054,
+        "macd_histogram": -0.16383046117970154,
+        "macd_signal": -0.16383046117970154,
+        "equity_bonds_corr": 0.13722552396360146,
+        "regime_stability": -0.03752924388339812,
+        "regime_confidence": 0.08802114693054675,
+        "volume_confirmation": -0.03354694159976007
+      },
+      "gold_equity_corr": {
+        "volatility": -0.3829479570175584,
+        "volatility_level": -0.46447972915999297,
+        "signal_quality": 0.5015464818421059,
+        "volatility_regime": -0.5396197313463387,
+        "gold_equity_corr": 1.0,
+        "momentum": -0.25072297452207226,
+        "cross_asset_dispersion": -0.9738965051194493,
+        "vix_rates_corr": 0.407861867341605,
+        "aud_gold_corr": 0.40021369183980016,
+        "macd_histogram": 0.06341474061450221,
+        "macd_signal": 0.06341474061450221,
+        "equity_bonds_corr": -0.48601918545602885,
+        "regime_stability": 0.21964490551527763,
+        "regime_confidence": -0.22056012741124809,
+        "volume_confirmation": 0.032699858550538634
+      },
+      "momentum": {
+        "volatility": 0.0254856717609592,
+        "volatility_level": 0.015423925939120998,
+        "signal_quality": -0.03214513479664891,
+        "volatility_regime": 0.1032906050466126,
+        "gold_equity_corr": -0.25072297452207226,
+        "momentum": 1.0,
+        "cross_asset_dispersion": 0.18236945867956506,
+        "vix_rates_corr": -0.13884336836518033,
+        "aud_gold_corr": 0.11503872061419952,
+        "macd_histogram": 0.12854447978185335,
+        "macd_signal": 0.12854447978185335,
+        "equity_bonds_corr": 0.1847780324428801,
+        "regime_stability": -0.150830889069306,
+        "regime_confidence": 0.0715633810155921,
+        "volume_confirmation": 0.08183575372088689
+      },
+      "cross_asset_dispersion": {
+        "volatility": 0.40748771790391375,
+        "volatility_level": 0.4923944572031418,
+        "signal_quality": -0.5259882679030166,
+        "volatility_regime": 0.5480176125833074,
+        "gold_equity_corr": -0.9738965051194493,
+        "momentum": 0.18236945867956506,
+        "cross_asset_dispersion": 1.0,
+        "vix_rates_corr": -0.36156004150219256,
+        "aud_gold_corr": -0.3916678394080631,
+        "macd_histogram": -0.06760890309022098,
+        "macd_signal": -0.06760890309022098,
+        "equity_bonds_corr": 0.5601997434237524,
+        "regime_stability": -0.17910984471244332,
+        "regime_confidence": 0.22382085797339926,
+        "volume_confirmation": -0.033131694208154754
+      },
+      "vix_rates_corr": {
+        "volatility": -0.25298883879941286,
+        "volatility_level": -0.32856688690869057,
+        "signal_quality": 0.33665930458055665,
+        "volatility_regime": -0.347472185118004,
+        "gold_equity_corr": 0.407861867341605,
+        "momentum": -0.13884336836518033,
+        "cross_asset_dispersion": -0.36156004150219256,
+        "vix_rates_corr": 1.0,
+        "aud_gold_corr": 0.13176195608311342,
+        "macd_histogram": 0.04564526487195578,
+        "macd_signal": 0.04564526487195578,
+        "equity_bonds_corr": -0.11935966208866487,
+        "regime_stability": 0.3087397980217424,
+        "regime_confidence": -0.24255072046482215,
+        "volume_confirmation": -0.009473041698083976
+      },
+      "aud_gold_corr": {
+        "volatility": -0.10484701057771738,
+        "volatility_level": -0.08496776664306925,
+        "signal_quality": 0.09313455298596385,
+        "volatility_regime": -0.0900721263649054,
+        "gold_equity_corr": 0.40021369183980016,
+        "momentum": 0.11503872061419952,
+        "cross_asset_dispersion": -0.3916678394080631,
+        "vix_rates_corr": 0.13176195608311342,
+        "aud_gold_corr": 1.0,
+        "macd_histogram": 0.06055749514623959,
+        "macd_signal": 0.06055749514623959,
+        "equity_bonds_corr": 0.10807410800804933,
+        "regime_stability": 0.1876154865844376,
+        "regime_confidence": -0.22431191900684855,
+        "volume_confirmation": 0.0552068490548742
+      },
+      "macd_histogram": {
+        "volatility": -0.19248211280805594,
+        "volatility_level": -0.23490265925844603,
+        "signal_quality": 0.2256527613399255,
+        "volatility_regime": -0.16383046117970154,
+        "gold_equity_corr": 0.06341474061450221,
+        "momentum": 0.12854447978185335,
+        "cross_asset_dispersion": -0.06760890309022098,
+        "vix_rates_corr": 0.04564526487195578,
+        "aud_gold_corr": 0.06055749514623959,
+        "macd_histogram": 1.0,
+        "macd_signal": 1.0,
+        "equity_bonds_corr": -0.00821455432570929,
+        "regime_stability": 0.00706762323417588,
+        "regime_confidence": -0.021748580141162346,
+        "volume_confirmation": -0.10282429949335585
+      },
+      "macd_signal": {
+        "volatility": -0.19248211280805594,
+        "volatility_level": -0.23490265925844603,
+        "signal_quality": 0.2256527613399255,
+        "volatility_regime": -0.16383046117970154,
+        "gold_equity_corr": 0.06341474061450221,
+        "momentum": 0.12854447978185335,
+        "cross_asset_dispersion": -0.06760890309022098,
+        "vix_rates_corr": 0.04564526487195578,
+        "aud_gold_corr": 0.06055749514623959,
+        "macd_histogram": 1.0,
+        "macd_signal": 1.0,
+        "equity_bonds_corr": -0.00821455432570929,
+        "regime_stability": 0.00706762323417588,
+        "regime_confidence": -0.021748580141162346,
+        "volume_confirmation": -0.10282429949335585
+      },
+      "equity_bonds_corr": {
+        "volatility": 0.06561924499336423,
+        "volatility_level": 0.11478101031858431,
+        "signal_quality": -0.12871451676739473,
+        "volatility_regime": 0.13722552396360146,
+        "gold_equity_corr": -0.48601918545602885,
+        "momentum": 0.1847780324428801,
+        "cross_asset_dispersion": 0.5601997434237524,
+        "vix_rates_corr": -0.11935966208866487,
+        "aud_gold_corr": 0.10807410800804933,
+        "macd_histogram": -0.00821455432570929,
+        "macd_signal": -0.00821455432570929,
+        "equity_bonds_corr": 1.0,
+        "regime_stability": -0.17166024401578123,
+        "regime_confidence": 0.07064261013335148,
+        "volume_confirmation": -0.039890085362270504
+      },
+      "regime_stability": {
+        "volatility": -0.030713623142234185,
+        "volatility_level": -0.03578554894477375,
+        "signal_quality": 0.037513606761528116,
+        "volatility_regime": -0.03752924388339812,
+        "gold_equity_corr": 0.21964490551527763,
+        "momentum": -0.150830889069306,
+        "cross_asset_dispersion": -0.17910984471244332,
+        "vix_rates_corr": 0.3087397980217424,
+        "aud_gold_corr": 0.1876154865844376,
+        "macd_histogram": 0.00706762323417588,
+        "macd_signal": 0.00706762323417588,
+        "equity_bonds_corr": -0.17166024401578123,
+        "regime_stability": 1.0,
+        "regime_confidence": -0.8716019289105668,
+        "volume_confirmation": -0.05305450493082895
+      },
+      "regime_confidence": {
+        "volatility": 0.08264250070730172,
+        "volatility_level": 0.09224410994492488,
+        "signal_quality": -0.09587246039072757,
+        "volatility_regime": 0.08802114693054675,
+        "gold_equity_corr": -0.22056012741124809,
+        "momentum": 0.0715633810155921,
+        "cross_asset_dispersion": 0.22382085797339926,
+        "vix_rates_corr": -0.24255072046482215,
+        "aud_gold_corr": -0.22431191900684855,
+        "macd_histogram": -0.021748580141162346,
+        "macd_signal": -0.021748580141162346,
+        "equity_bonds_corr": 0.07064261013335148,
+        "regime_stability": -0.8716019289105668,
+        "regime_confidence": 1.0,
+        "volume_confirmation": 0.046242408835105615
+      },
+      "volume_confirmation": {
+        "volatility": -0.030965649787744243,
+        "volatility_level": 0.000565894854138333,
+        "signal_quality": 0.0037113796118473006,
+        "volatility_regime": -0.03354694159976007,
+        "gold_equity_corr": 0.032699858550538634,
+        "momentum": 0.08183575372088689,
+        "cross_asset_dispersion": -0.033131694208154754,
+        "vix_rates_corr": -0.009473041698083976,
+        "aud_gold_corr": 0.0552068490548742,
+        "macd_histogram": -0.10282429949335585,
+        "macd_signal": -0.10282429949335585,
+        "equity_bonds_corr": -0.039890085362270504,
+        "regime_stability": -0.05305450493082895,
+        "regime_confidence": 0.046242408835105615,
+        "volume_confirmation": 1.0
+      }
+    },
+    "high_corr_pairs": [
+      {
+        "feature1": "volatility",
+        "feature2": "volatility_level",
+        "correlation": 0.7826206063253179,
+        "f1_cv": 0.10061019036294494,
+        "f2_cv": 0.05700181487890057,
+        "keep": "volatility",
+        "remove": "volatility_level"
+      },
+      {
+        "feature1": "volatility",
+        "feature2": "volatility_regime",
+        "correlation": 0.7304723280244058,
+        "f1_cv": 0.10061019036294494,
+        "f2_cv": 0.18461694658888153,
+        "keep": "volatility_regime",
+        "remove": "volatility"
+      },
+      {
+        "feature1": "volatility_level",
+        "feature2": "volatility_regime",
+        "correlation": 0.9169995689626385,
+        "f1_cv": 0.05700181487890057,
+        "f2_cv": 0.18461694658888153,
+        "keep": "volatility_regime",
+        "remove": "volatility_level"
+      },
+      {
+        "feature1": "macd_histogram",
+        "feature2": "macd_signal",
+        "correlation": 1.0,
+        "f1_cv": 0.04028068679432705,
+        "f2_cv": 0.04028068679432705,
+        "keep": "macd_signal",
+        "remove": "macd_histogram"
+      }
+    ],
+    "features_to_remove": [
+      "volatility_level",
+      "volatility",
+      "macd_histogram"
+    ],
+    "reduced_features": [
+      "signal_quality",
+      "volatility_regime",
+      "gold_equity_corr",
+      "momentum",
+      "cross_asset_dispersion",
+      "vix_rates_corr",
+      "aud_gold_corr",
+      "macd_signal",
+      "equity_bonds_corr",
+      "regime_stability",
+      "regime_confidence",
+      "volume_confirmation"
+    ]
+  }
+}

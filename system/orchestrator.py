@@ -14,7 +14,7 @@ warnings.filterwarnings('ignore')
 # Import new components
 from utilities.shared_utils import extract_column, extract_adjusted_price
 from analyzers.risk_component import RiskComponent
-from analyzers.ml_ensemble import MLEnsemble
+from analyzers.ml_ensemble_production import MLEnsembleProduction
 # from analyzers.volume_intelligence import VolumeIntelligence  # REMOVED - no validated factors
 from analyzers.etf_risk_classifier import ETFRiskClassifier
 from analyzers.percentile_ranker import PercentileRanker
@@ -43,7 +43,7 @@ def _process_ml_ensemble_etf(args):
     print(f"[ML_ENSEMBLE_START] {ticker}")
 
     try:
-        ml_ensemble = MLEnsemble()  # Create fresh instance per process
+        ml_ensemble = MLEnsembleProduction()  # Create fresh instance per process
         data = etf_data['data']
 
         # Run ML Forecast
@@ -243,7 +243,7 @@ class ETFAnalysisSystem:
     def __init__(self):
         self.risk_component = RiskComponent()
         self.risk_component.validated_only = True  # ENABLE OPTIMIZED MODE
-        self.ml_ensemble = MLEnsemble()
+        self.ml_ensemble = MLEnsembleProduction()
         # self.volume_intelligence = VolumeIntelligence()  # REMOVED - no validated factors
         self.risk_classifier = ETFRiskClassifier()
         self.etf_database = ETFDatabase()
@@ -593,6 +593,9 @@ class ETFAnalysisSystem:
                 
                 # Kalman Hull - VALIDATED
                 'kalman_signal_strength': kalman_output.get('signal_strength', 0.0),
+                
+                # Composite Score - CALCULATED
+                'composite_score': self._calculate_composite_score(risk_output, ml_output, kalman_output),
             }
 
             # Add ETF info
@@ -620,6 +623,48 @@ class ETFAnalysisSystem:
         self._save_daily_factors(risk_group_etfs, combined_results)
 
         return combined_results
+    
+    def _calculate_composite_score(self, risk_output: Dict, ml_output: Dict, kalman_output: Dict) -> float:
+        """
+        Calculate composite score from validated factors
+        
+        Args:
+            risk_output: Risk component results
+            ml_output: ML ensemble results  
+            kalman_output: Kalman Hull results
+            
+        Returns:
+            Composite score (0-1)
+        """
+        try:
+            # Risk score (40%) - use CVaR inverted (lower CVaR = higher score)
+            cvar = risk_output.get('cvar', 0.0)
+            if not np.isnan(cvar):
+                # Invert CVaR and normalize to 0-1 (assuming CVaR range -0.1 to 0.0)
+                risk_score = max(0.0, min(1.0, (cvar + 0.1) / 0.1))
+            else:
+                risk_score = 0.5
+            
+            # ML score (30%) - use forecast and confidence
+            ml_forecast = ml_output.get('forecast_return', 0.0)
+            confidence = ml_output.get('confidence_score', 0.5)
+            # Normalize forecast to 0-1 (assuming range -15% to +15%)
+            ml_normalized = max(0.0, min(1.0, (ml_forecast + 15) / 30))
+            ml_score = ml_normalized * confidence
+            
+            # Technical score (30%) - use Kalman signal strength
+            signal_strength = kalman_output.get('signal_strength', 0.0)
+            # Normalize signal strength to 0-1 (assuming range -1 to +1)
+            tech_score = max(0.0, min(1.0, (signal_strength + 1) / 2))
+            
+            # Weighted composite
+            composite = (risk_score * 0.4 + ml_score * 0.3 + tech_score * 0.3)
+            
+            return max(0.0, min(1.0, composite))
+            
+        except Exception as e:
+            print(f"Composite score calculation error: {e}")
+            return 0.5
 
     def calculate_adjusted_return(self, prices: pd.Series, period_days: int = 252) -> float:
         """
@@ -825,7 +870,8 @@ class ETFAnalysisSystem:
                 original_risk_map[ticker] = risk_category
         
         # Step 5: Export rankings to CSV (delegates to percentile_ranker)
-        self.percentile_ranker.export_rankings_to_csv(rankings, 'data/rankings_percentile.csv')
+        # CSV export removed - only saving to Parquet
+        # self.percentile_ranker.export_rankings_to_csv(rankings, 'data/rankings_percentile.csv')
 
         return {
             'analysis_results': all_results,

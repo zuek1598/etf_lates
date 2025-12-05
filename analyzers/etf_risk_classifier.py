@@ -9,12 +9,15 @@ import numpy as np
 import yfinance as yf
 from scipy import stats
 import time
+import os
+from datetime import datetime
 from typing import Dict, Tuple, List
 import warnings
 import threading
 warnings.filterwarnings('ignore')
 
 from utilities.shared_utils import extract_column
+from utilities.etf_validator import ETFActivityValidator
 
 class ETFRiskClassifier:
     """
@@ -25,7 +28,8 @@ class ETFRiskClassifier:
     def __init__(self, enable_cache=True):
         from data_manager.data_manager import ETFDataManager
         self.etf_database = ETFDataManager()
-        # Thread-safe locks for concurrent access
+        self.enable_cache = enable_cache
+        self.activity_validator = ETFActivityValidator()
         self._cache_lock = threading.Lock()
         self._benchmark_lock = threading.Lock()  # Lock for benchmark data access
         self.enable_cache = enable_cache  # Can be disabled for parallel mode
@@ -60,22 +64,62 @@ class ETFRiskClassifier:
         self.cache = {}
         
     def download_benchmark_data(self) -> Dict[str, pd.DataFrame]:
-        """Download all benchmark data for correlation analysis"""
+        """Download all benchmark data for correlation analysis with timeout"""
         print("Downloading benchmark data...")
+        
+        # Check if we have recent cached data first
+        cache_file = os.path.join("data", "benchmark_cache.parquet")
+        if os.path.exists(cache_file):
+            try:
+                cache_age = datetime.now() - datetime.fromtimestamp(os.path.getmtime(cache_file))
+                if cache_age.total_seconds() < 24 * 3600:  # Less than 24 hours old
+                    print(f"  Using cached benchmark data ({cache_age.total_seconds()/3600:.1f}h old)")
+                    cached_data = pd.read_parquet(cache_file)
+                    for name in self.benchmarks.keys():
+                        if name in cached_data.columns:
+                            # Create a DataFrame with the benchmark data (don't drop all NaNs)
+                            benchmark_df = pd.DataFrame({name: cached_data[name]})
+                            self.benchmark_data[name] = benchmark_df
+                    print(f"    Loaded {len(self.benchmark_data)} benchmarks from cache")
+                    return self.benchmark_data
+            except Exception as e:
+                print(f"  Cache read failed: {e}")
         
         for name, ticker in self.benchmarks.items():
             try:
                 print(f"  Downloading {name} ({ticker})...")
-                data = yf.download(ticker, period="max", progress=False)
+                
+                # Add timeout by using a shorter period for recent data
+                data = yf.download(ticker, period="1y", progress=False, timeout=10)
                 if not data.empty:
                     self.benchmark_data[name] = data
-                    print(f"    {name}: {len(data)} days")
+                    print(f"    {name}: {len(data)} days (from {data.index[0].date()} to {data.index[-1].date()})")
                 else:
                     print(f"    {name}: No data")
             except Exception as e:
                 print(f"    {name}: Error - {str(e)}")
                 
+        # Cache the downloaded data for future use
+        if self.benchmark_data:
+            try:
+                os.makedirs("data", exist_ok=True)
+                combined_data = pd.DataFrame()
+                for name, data in self.benchmark_data.items():
+                    if 'Close' in data.columns:
+                        combined_data[name] = data['Close']
+                combined_data.to_parquet(cache_file)
+                print(f"  Cached benchmark data for future use")
+            except Exception as e:
+                print(f"  Cache save failed: {e}")
+        
         print(f"Successfully downloaded {len(self.benchmark_data)} benchmarks")
+        
+        # Debug: Print benchmark data status
+        for name, data in self.benchmark_data.items():
+            if 'Close' in data.columns:
+                returns = data['Close'].pct_change().dropna()
+                print(f"  Debug {name}: {len(data)} price points, {len(returns)} returns")
+        
         return self.benchmark_data
     
     def download_etf_data(self, ticker: str, period: str = "max") -> Tuple[pd.DataFrame, str, float]:
@@ -134,26 +178,64 @@ class ETFRiskClassifier:
                 else:
                     quality_tier = "tier_4"
 
-                quality_score = completeness * min(years_available / 3, 1.0)
+                # Calculate quality score (0-1)
+                quality_score = min(1.0, (years_available / 5) * completeness)
 
-                # Cache the result if enabled
-                result = (data, quality_tier, quality_score)
+                # Cache result if enabled
                 if self.enable_cache:
                     with self._cache_lock:
-                        self.cache[cache_key] = result
+                        self.cache[cache_key] = (data, quality_tier, quality_score)
 
-                return result
+                return data, quality_tier, quality_score
 
             except Exception as e:
                 if attempt < max_retries - 1:
-                    print(f"   {ticker}: Error ({str(e)}), retrying in {retry_delay}s... (attempt {attempt + 1}/{max_retries})")
+                    print(f"   {ticker}: Download failed, retrying in {retry_delay}s... ({str(e)[:50]})")
                     time.sleep(retry_delay)
-                    retry_delay *= 2  # Exponential backoff
+                    retry_delay *= 2
                 else:
-                    print(f"  {ticker}: Failed after {max_retries} attempts - {str(e)}")
+                    print(f"  {ticker}: Download failed after {max_retries} attempts: {str(e)[:50]}")
                     return None, "error", 0.0
 
         return None, "error", 0.0
+    
+    def download_etf_data_batch(self, tickers: List[str], period: str = "max") -> Dict[str, Tuple[pd.DataFrame, str, float]]:
+        """
+        Download multiple ETFs in parallel using batch fetching
+        Much faster than individual downloads while maintaining the same interface
+        """
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        
+        print(f"🚀 Starting batch download: {len(tickers)} ETFs")
+        
+        results = {}
+        
+        # Use ThreadPoolExecutor for parallel downloads
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            # Submit all download tasks
+            future_to_ticker = {
+                executor.submit(self.download_etf_data, ticker, period): ticker 
+                for ticker in tickers
+            }
+            
+            # Collect results as they complete
+            for future in as_completed(future_to_ticker):
+                ticker = future_to_ticker[future]
+                try:
+                    data, quality_tier, quality_score = future.result()
+                    results[ticker] = (data, quality_tier, quality_score)
+                    if data is not None:
+                        print(f"  ✅ {ticker}: {len(data)} days")
+                    else:
+                        print(f"  ❌ {ticker}: Failed")
+                except Exception as e:
+                    print(f"  ⚠️  {ticker}: Error - {str(e)[:50]}")
+                    results[ticker] = (None, "error", 0.0)
+        
+        successful = sum(1 for result in results.values() if result[0] is not None)
+        print(f"🎯 Batch Download Complete: {successful}/{len(tickers)} successful")
+        
+        return results
     
     def calculate_annual_volatility(self, data: pd.DataFrame, periods: int) -> float:
         """Calculate annualized volatility for given periods"""
@@ -275,8 +357,15 @@ class ETFRiskClassifier:
             if benchmark_data.empty:
                 continue
 
-            close_col = extract_column(benchmark_data, 'Close')
-            benchmark_returns = close_col.pct_change().dropna()
+            # Benchmark data has the benchmark name as column (not 'Close')
+            if benchmark_name in benchmark_data.columns:
+                benchmark_prices = benchmark_data[benchmark_name]
+            else:
+                # Fallback to 'Close' column if it exists
+                close_col = extract_column(benchmark_data, 'Close')
+                benchmark_prices = close_col if close_col is not None else benchmark_data.iloc[:, 0]
+            
+            benchmark_returns = benchmark_prices.pct_change().dropna()
 
             # Align dates
             common_dates = etf_returns.index.intersection(benchmark_returns.index)
@@ -317,8 +406,16 @@ class ETFRiskClassifier:
         # Thread-safe access to benchmark data
         with self._benchmark_lock:
             benchmark_data = self.benchmark_data[best_benchmark]
-            close_col = extract_column(benchmark_data, 'Close')
-            benchmark_returns = close_col.pct_change().dropna()
+            
+            # Benchmark data has the benchmark name as column (not 'Close')
+            if best_benchmark in benchmark_data.columns:
+                benchmark_prices = benchmark_data[best_benchmark]
+            else:
+                # Fallback to 'Close' column if it exists
+                close_col = extract_column(benchmark_data, 'Close')
+                benchmark_prices = close_col if close_col is not None else benchmark_data.iloc[:, 0]
+            
+            benchmark_returns = benchmark_prices.pct_change().dropna()
         
         # Calculate 1-year beta (most recent and relevant)
         periods_1yr = min(252, len(etf_returns))  # Use up to 1 year of data
@@ -389,6 +486,14 @@ class ETFRiskClassifier:
         data, quality_tier, quality_score = self.download_etf_data(ticker)
 
         if data is None or quality_tier == "insufficient":
+            return None
+
+        # Validate ETF activity - filter out delisted/inactive ETFs
+        prices = extract_column(data, 'Close')
+        activity_result = self.activity_validator.validate_etf_activity(prices, ticker)
+        
+        if not activity_result['is_active']:
+            print(f"  ⚠️  {ticker}: Skipping - {activity_result['reason']}")
             return None
 
         # Calculate enhanced volatility (passing ticker for better logging)

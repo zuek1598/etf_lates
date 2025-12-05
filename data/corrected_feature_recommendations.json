@@ -1,0 +1,327 @@
+{
+  "corrected_features": [
+    "volatility",
+    "gold_equity_corr",
+    "volatility_level",
+    "signal_quality",
+    "vix_rates_corr",
+    "cross_asset_dispersion",
+    "macd_histogram",
+    "macd_signal",
+    "momentum",
+    "equity_bonds_corr"
+  ],
+  "feature_count": 10,
+  "selection_method": "balanced_scoring",
+  "balanced_scores": [
+    {
+      "feature": "volatility",
+      "balanced_score": 0.7436700784789925,
+      "cv_score": 0.10061019036294494,
+      "temporal_importance": 0.15482249502125742,
+      "correlation": 0.40408282958850417,
+      "meets_temporal_requirement": true
+    },
+    {
+      "feature": "gold_equity_corr",
+      "balanced_score": 0.6725910995080496,
+      "cv_score": 0.18697336534823336,
+      "temporal_importance": 0.02232766472832669,
+      "correlation": 0.3861022910443381,
+      "meets_temporal_requirement": true
+    },
+    {
+      "feature": "volatility_level",
+      "balanced_score": 0.6603273627959081,
+      "cv_score": 0.05700181487890057,
+      "temporal_importance": 0.11317127792427423,
+      "correlation": 0.4105395550635116,
+      "meets_temporal_requirement": true
+    },
+    {
+      "feature": "signal_quality",
+      "balanced_score": 0.6589984484452429,
+      "cv_score": 0.05633735770356796,
+      "temporal_importance": 0.11499964912437526,
+      "correlation": 0.4105395550635116,
+      "meets_temporal_requirement": true
+    },
+    {
+      "feature": "volatility_regime",
+      "balanced_score": 0.651915312847664,
+      "cv_score": 0.18461694658888153,
+      "temporal_importance": 0.007148847640475444,
+      "correlation": 0.4353914612474578,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "vix_rates_corr",
+      "balanced_score": 0.6021056009431037,
+      "cv_score": 0.1827249792063779,
+      "temporal_importance": 0.02390063732757353,
+      "correlation": 0.27492288424604555,
+      "meets_temporal_requirement": true
+    },
+    {
+      "feature": "cross_asset_dispersion",
+      "balanced_score": 0.5825816394891431,
+      "cv_score": 0.16000296210522705,
+      "temporal_importance": 0.020909732855230134,
+      "correlation": 0.33307752785499767,
+      "meets_temporal_requirement": true
+    },
+    {
+      "feature": "macd_histogram",
+      "balanced_score": 0.5691876669852224,
+      "cv_score": 0.04028068679432705,
+      "temporal_importance": 0.11169631761245867,
+      "correlation": 0.3143771556609471,
+      "meets_temporal_requirement": true
+    },
+    {
+      "feature": "macd_signal",
+      "balanced_score": 0.5691876669852224,
+      "cv_score": 0.04028068679432705,
+      "temporal_importance": 0.12075612325022864,
+      "correlation": 0.3143771556609471,
+      "meets_temporal_requirement": true
+    },
+    {
+      "feature": "momentum",
+      "balanced_score": 0.5584864499452378,
+      "cv_score": 0.024824592511129603,
+      "temporal_importance": 0.26363201543661297,
+      "correlation": 0.34806210820496436,
+      "meets_temporal_requirement": true
+    },
+    {
+      "feature": "aud_gold_corr",
+      "balanced_score": 0.557331641898909,
+      "cv_score": 0.18840778053297477,
+      "temporal_importance": 0.00975344610167902,
+      "correlation": 0.2520929042132041,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "equity_bonds_corr",
+      "balanced_score": 0.4528118588976843,
+      "cv_score": 0.1828290504456459,
+      "temporal_importance": 0.023196096549545797,
+      "correlation": 0.029275780596258523,
+      "meets_temporal_requirement": true
+    },
+    {
+      "feature": "volume_confirmation",
+      "balanced_score": 0.1742805003001474,
+      "cv_score": 0.03623567467805889,
+      "temporal_importance": 0.012822568117270318,
+      "correlation": 0.10556907765369783,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "macd_strength",
+      "balanced_score": 0.15707867421440547,
+      "cv_score": -0.019176291905224845,
+      "temporal_importance": 0.0,
+      "correlation": 0.32571876337475864,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "regime_stability",
+      "balanced_score": 0.15192689701804007,
+      "cv_score": 0.041429513032827964,
+      "temporal_importance": 0.0006939157678180854,
+      "correlation": 0.11164353941488314,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "regime_confidence",
+      "balanced_score": 0.14171046987359803,
+      "cv_score": 0.041725726399856104,
+      "temporal_importance": 0.0001692125428738284,
+      "correlation": 0.09625229907544057,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "macd_v_signal",
+      "balanced_score": 0.1022908452135786,
+      "cv_score": 0.014245231272205698,
+      "temporal_importance": 0.0,
+      "correlation": 0.12300063778194535,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "macd_v_histogram",
+      "balanced_score": 0.1022908452135786,
+      "cv_score": 0.014245231272205698,
+      "temporal_importance": 0.0,
+      "correlation": 0.12300063778194535,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "sma_ratio",
+      "balanced_score": 0.08842827492219478,
+      "cv_score": -0.008704204082314706,
+      "temporal_importance": 0.0,
+      "correlation": 0.17639447181137366,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "demand_strength",
+      "balanced_score": 0.058018069356150566,
+      "cv_score": -0.022851603302203,
+      "temporal_importance": 0.0,
+      "correlation": 0.17286879326759427,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "macd_v_strength",
+      "balanced_score": 0.005077859158173437,
+      "cv_score": -0.051602246792810454,
+      "temporal_importance": 0.0,
+      "correlation": 0.1804705879063239,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "selling_pressure",
+      "balanced_score": 0.001795390787875318,
+      "cv_score": -0.009676926672432775,
+      "temporal_importance": 0.0,
+      "correlation": 0.03524874022123478,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "supply_pressure",
+      "balanced_score": -0.00027640696828551414,
+      "cv_score": -0.02107105831509638,
+      "temporal_importance": 0.0,
+      "correlation": 0.06977618276984542,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "macd_divergence",
+      "balanced_score": -0.05857004435502404,
+      "cv_score": -0.07160618450701105,
+      "temporal_importance": 0.0,
+      "correlation": 0.1410705410983301,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "volatility_adjusted_momentum",
+      "balanced_score": -0.08107180149384915,
+      "cv_score": -0.05726191241500945,
+      "temporal_importance": 0.0,
+      "correlation": 0.05575337222694955,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "money_flow_index",
+      "balanced_score": -0.09324331803392966,
+      "cv_score": -0.056422772339954685,
+      "temporal_importance": 0.0,
+      "correlation": 0.03267037774329952,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "return_ratio",
+      "balanced_score": -0.1094791031956279,
+      "cv_score": -0.11603598309644714,
+      "temporal_importance": 0.0,
+      "correlation": 0.2043214383287773,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "demand_supply_balance",
+      "balanced_score": -0.1356034527612762,
+      "cv_score": -0.10126188354133447,
+      "temporal_importance": 0.0,
+      "correlation": 0.11153385720232126,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "buying_pressure",
+      "balanced_score": -0.14187708518817543,
+      "cv_score": -0.07765365654678132,
+      "temporal_importance": 0.0,
+      "correlation": 0.022383713175645338,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "volume_ratio",
+      "balanced_score": -0.15463279176319544,
+      "cv_score": -0.10652083833198611,
+      "temporal_importance": 0.0,
+      "correlation": 0.09734814150129466,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "volume_pressure",
+      "balanced_score": -0.15463279176319544,
+      "cv_score": -0.10652083833198611,
+      "temporal_importance": 0.0,
+      "correlation": 0.09734814150129466,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "price_volume_efficiency",
+      "balanced_score": -0.17643231572249993,
+      "cv_score": -0.10760831800158314,
+      "temporal_importance": 0.0,
+      "correlation": 0.06464053380111064,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "volume_trend_strength",
+      "balanced_score": -0.19044552563664166,
+      "cv_score": -0.11828147931031247,
+      "temporal_importance": 0.0,
+      "correlation": 0.07686238830663879,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "price_position",
+      "balanced_score": -0.21343063967878462,
+      "cv_score": -0.1287798337837793,
+      "temporal_importance": 0.0,
+      "correlation": 0.07354837981462331,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "price_volume_correlation",
+      "balanced_score": -0.21930110006371872,
+      "cv_score": -0.11833525781308371,
+      "temporal_importance": 0.0,
+      "correlation": 0.02894902593741447,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "rsi",
+      "balanced_score": -0.234393029579997,
+      "cv_score": -0.11978414685700092,
+      "temporal_importance": 0.0,
+      "correlation": 0.0086254402233414,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "obv_trend",
+      "balanced_score": -0.2681309174274771,
+      "cv_score": -0.16638855117254944,
+      "temporal_importance": 0.0,
+      "correlation": 0.10774364152936966,
+      "meets_temporal_requirement": false
+    },
+    {
+      "feature": "ad_trend",
+      "balanced_score": -0.2681309174274771,
+      "cv_score": -0.16638855117254944,
+      "temporal_importance": 0.0,
+      "correlation": 0.10774364152936966,
+      "meets_temporal_requirement": false
+    }
+  ],
+  "original_issues": {
+    "covid_validation_fixed": false,
+    "regime_confidence_low": true,
+    "feature_selection_logic_corrected": true
+  }
+}

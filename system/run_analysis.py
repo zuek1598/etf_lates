@@ -66,17 +66,12 @@ def print_analysis_summary(results, etf_db):
         risk_map = {'low_risk_etfs': 'LOW', 'medium_risk_etfs': 'MEDIUM', 'high_risk_etfs': 'HIGH'}
         risk = risk_map.get(risk_raw, risk_raw.upper() if isinstance(risk_raw, str) else 'MEDIUM')
         
-        # Get full ETF name from Yahoo Finance
-        try:
-            import yfinance as yf
-            yf_ticker = yf.Ticker(ticker)
-            full_name = yf_ticker.info.get('longName', etf_info.get('name', ticker))
-        except:
-            full_name = etf_info.get('name', ticker)
+        # Use cached ETF name - removed slow Yahoo Finance API calls for performance
+        full_name = etf_info.get('name', ticker)
         
         universe_data.append({
             'ticker': ticker,
-            'name': full_name,  # Full name from Yahoo Finance
+            'name': full_name,  # Cached name from ETF database
             'risk_category': risk,
             'composite_score': analysis.get('composite_percentile', analysis.get('composite_score', 0.0)),
             
@@ -195,21 +190,21 @@ def print_analysis_summary(results, etf_db):
             print(f"  {idx}. {row.ticker:<10} {row.ml_forecast:>+6.2f}%  "
                   f"(Hit Rate: {row.hit_rate:.2f}, Score: {row.composite_score:.1f})")
     
-    # Overall Top Performers
+    # Top 15 by ML Forecast
     print(f"\n" + "="*90)
-    print(f"TOP 15 ETFS (ALL CATEGORIES)")
+    print(f"TOP 15 ETFS BY ML FORECAST")
     print("="*90)
-    print(f"{'Rank':<6}{'Ticker':<12}{'Name':<45}{'Risk':<10}{'Score':<8}{'Signal':<8}{'HitRate':<8}{'Forecast':<10}{'YTD %':<8}")
+    print(f"{'Rank':<6}{'Ticker':<12}{'Name':<45}{'Risk':<10}{'Forecast':<10}{'Score':<8}{'Signal':<8}{'HitRate':<8}{'YTD %':<8}")
     print("-" * 111)
     
-    top_15 = universe_df.nlargest(15, 'composite_score')
+    top_15 = universe_df.nlargest(15, 'ml_forecast')
     for idx, row in enumerate(top_15.itertuples(), 1):
         name_short = row.name[:42] + "..." if len(row.name) > 45 else row.name
         signal_str = f"{row.kalman_signal_strength:.3f}"
         hitrate_str = f"{row.hit_rate:.2f}"
         print(f"{idx:<6}{row.ticker:<12}{name_short:<45}{row.risk_category:<9}"
-              f"{row.composite_score:>6.1f}  {signal_str:>6}  "
-              f"{hitrate_str:>6}  {row.ml_forecast:>+6.1f}%   {row.ytd_return*100:>6.1f}")
+              f"{row.ml_forecast:>+7.2f}%  {row.composite_score:>6.1f}  "
+              f"{signal_str:>6}  {hitrate_str:>6}  {row.ytd_return*100:>6.1f}")
     
     # Key Insights
     print(f"\n" + "="*80)

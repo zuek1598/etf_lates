@@ -24,4 +24,3 @@ if __name__ == "__main__":
     # Import and run the system module
     from system.run_analysis import main
     main()
-
