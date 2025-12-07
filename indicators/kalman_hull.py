@@ -76,24 +76,11 @@ def calculate_adaptive_kalman_hull(prices: pd.Series, volume: Optional[pd.Series
         prices, hull_final, atr, params['atr_factor']
     )
     
-    # G. Detect Divergence
-    divergence = _detect_divergence(prices, hull_final)
-    
-    # Calculate trend consistency
-    trend_consistency = _calculate_trend_consistency(trend)
-    
-    # Calculate signal strength
+    # G. Calculate signal strength (only needed metric)
     signal_strength = _calculate_signal_strength(prices.iloc[-1], upper_band.iloc[-1], 
                                                  lower_band.iloc[-1], er, trend.iloc[-1])
     
     return {
-        'trend': int(trend.iloc[-1]),
-        'kalman_price': float(hull_final.iloc[-1]),
-        'upper_band': float(upper_band.iloc[-1]),
-        'lower_band': float(lower_band.iloc[-1]),
-        'efficiency_ratio': float(er),
-        'divergence': divergence,
-        'trend_consistency': bool(trend_consistency),
         'signal_strength': float(signal_strength)
     }
 
@@ -340,22 +327,13 @@ def _calculate_signal_strength(price: float, upper: float, lower: float,
 
 
 def _empty_result() -> Dict:
-    """Return empty result for insufficient data"""
-    return {
-        'trend': 0,
-        'kalman_price': np.nan,
-        'upper_band': np.nan,
-        'lower_band': np.nan,
-        'efficiency_ratio': 0.5,
-        'divergence': 'none',
-        'trend_consistency': False,
-        'signal_strength': 0.0
-    }
+    """Return empty result with only signal_strength"""
+    return {'signal_strength': 0.0}
 
 
 # Test function
 if __name__ == "__main__":
-    print("Testing Adaptive Kalman Hull Supertrend...")
+    print("Testing Adaptive Kalman Hull Supertrend (Signal Strength Only)...")
     
     # Generate test data
     np.random.seed(42)
@@ -366,13 +344,7 @@ if __name__ == "__main__":
     for risk_cat in ['LOW', 'MEDIUM', 'HIGH']:
         result = calculate_adaptive_kalman_hull(prices, risk_category=risk_cat)
         print(f"\n{risk_cat} Risk:")
-        print(f"  Trend: {result['trend']}")
-        print(f"  Kalman Price: {result['kalman_price']:.2f}")
-        print(f"  Bands: [{result['lower_band']:.2f}, {result['upper_band']:.2f}]")
-        print(f"  Efficiency Ratio: {result['efficiency_ratio']:.3f}")
-        print(f"  Divergence: {result['divergence']}")
-        print(f"  Consistency: {result['trend_consistency']}")
         print(f"  Signal Strength: {result['signal_strength']:.3f}")
     
-    print("\nKalman Hull Supertrend implementation complete!")
+    print("\nKalman Hull Supertrend (optimized) implementation complete!")
 

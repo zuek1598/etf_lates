@@ -354,7 +354,7 @@ class MLEnsembleProduction:
     
     def walk_forward_validate(self, prices: pd.Series, models: Dict = None) -> Dict:
         """
-        Walk-forward validation for production ensemble
+        Simple validation for production ensemble
         
         Args:
             prices: Price series for validation
@@ -367,61 +367,61 @@ class MLEnsembleProduction:
             return {'mae': np.nan, 'hit_rate': np.nan}
         
         try:
-            # Use provided models or train new ones
-            if models is None or models.get('rf') is None:
-                # Extract features for training
-                X_train = self._extract_production_features(prices.iloc[:-60])
-                X_train_scaled = self._scale_features(X_train)
-                models = self._train_production_models(prices.iloc[:-60], X_train_scaled)
-            
-            if models.get('rf') is None:
-                return {'mae': np.nan, 'hit_rate': np.nan}
-            
-            # Walk-forward validation
-            window_size = 252
+            # Proper walk-forward validation
+            window_size = 252  # Training window
             forecast_horizon = 60
+            step_size = 30  # Test every 30 days
             
             forecasts = []
             actuals = []
             
-            for i in range(len(prices) - window_size - forecast_horizon):
+            # Walk through data with rolling windows
+            for end_idx in range(window_size + forecast_horizon, len(prices) - forecast_horizon, step_size):
                 try:
-                    # Train on window
-                    train_prices = prices.iloc[i:i+window_size]
-                    train_returns = train_prices.pct_change().dropna()
+                    # Define training and test periods
+                    train_start = end_idx - window_size - forecast_horizon
+                    train_end = end_idx - forecast_horizon
                     
-                    if len(train_returns) < 100:
+                    if train_start < 0 or train_end >= len(prices):
                         continue
                     
-                    # Extract features for prediction
+                    # Training data
+                    train_prices = prices.iloc[train_start:train_end]
+                    test_prices = prices.iloc[train_end:end_idx]
+                    
+                    if len(train_prices) < 200 or len(test_prices) < forecast_horizon:
+                        continue
+                    
+                    # Extract features from END of training period
                     X_train = self._extract_production_features(train_prices)
                     X_train_scaled = self._scale_features(X_train)
+                    models = self._train_production_models(train_prices, X_train_scaled)
                     
-                    # Train models on window
-                    temp_models = self._train_production_models(train_prices, X_train_scaled)
-                    
-                    if temp_models.get('rf') is None:
+                    if models.get('rf') is None:
                         continue
                     
-                    # Make prediction
-                    rf_pred = temp_models['rf'].predict(X_train_scaled)[0]
-                    ridge_pred = temp_models['ridge'].predict(X_train_scaled)[0]
-                    forecast = (rf_pred + ridge_pred) / 2.0
+                    # Make prediction using features at training end
+                    X_pred = self._extract_production_features(train_prices.iloc[-1:])
+                    X_pred_scaled = self._scale_features(X_pred)
                     
-                    # Actual return over forecast horizon
-                    actual_return = (prices.iloc[i+window_size+forecast_horizon-1] / 
-                                   prices.iloc[i+window_size-1] - 1)
+                    rf_pred = models['rf'].predict(X_pred_scaled)[0]
+                    ridge_pred = models['ridge'].predict(X_pred_scaled)[0]
+                    forecast = (rf_pred + ridge_pred) / 2
+                    
+                    # Calculate actual cumulative return for test period
+                    actual_return = test_prices.pct_change().sum()
                     
                     forecasts.append(forecast)
                     actuals.append(actual_return)
                     
-                except Exception:
+                except Exception as e:
+                    print(f"Window validation error: {e}")
                     continue
             
-            if len(forecasts) < 10:
+            if len(forecasts) < 3:  # Need multiple predictions for meaningful hit rate
                 return {'mae': np.nan, 'hit_rate': np.nan}
             
-            # Calculate metrics
+            # Calculate proper metrics across multiple predictions
             forecasts = np.array(forecasts)
             actuals = np.array(actuals)
             

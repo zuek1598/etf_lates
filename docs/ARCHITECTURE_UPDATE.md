@@ -23,9 +23,11 @@
 ### Key Improvements Made
 
 1. **Feature Optimization**: 40 → 10 validated features (75% reduction)
-2. **Performance**: Removed slow Yahoo Finance API calls in summary
-3. **Output**: CSV exports removed, Parquet only
-4. **Validation**: Temporal out-of-sample testing implemented
+2. **Forecast Target**: Fixed ML ensemble to predict **60-day cumulative returns** instead of daily returns
+3. **ETF Activity Validation**: Added ETF activity validation to filter inactive/delisted ETFs
+4. **Performance**: Removed slow Yahoo Finance API calls in summary
+5. **Output**: CSV exports removed, Parquet only
+6. **Validation**: Temporal out-of-sample testing implemented
 
 ### Data Flow
 

@@ -1,5 +1,5 @@
 # ETF Analysis System - Production Requirements
-# Updated: December 4, 2025 - Optimized System
+# Updated: December 5, 2025 - Cumulative Return Fix + ETF Validation
 
 # Core Data Processing
 numpy>=1.24.0

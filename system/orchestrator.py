@@ -90,21 +90,17 @@ def _process_kalman_hull_etf(args):
             result = calculate_adaptive_kalman_hull(
                 prices, volume, risk_category=risk_category, ohlc_data=data
             )
-            print(f"[KALMAN_HULL_OK] {ticker}: trend={result.get('trend')}, signal={result.get('signal_strength', 0):.2f}")
+            print(f"[KALMAN_HULL_OK] {ticker}: signal_strength={result.get('signal_strength', 0):.2f}")
             return ticker, result
         else:
             print(f"[KALMAN_HULL_NODATA] {ticker}: insufficient price data")
             return ticker, {
-                'trend': 0, 'kalman_price': np.nan, 'upper_band': np.nan,
-                'lower_band': np.nan, 'efficiency_ratio': 0.5,
-                'divergence': 'none', 'trend_consistency': False, 'signal_strength': 0.0
+                'signal_strength': 0.0
             }
     except Exception as e:
         print(f"[KALMAN_HULL_ERROR] {ticker}: {str(e)}")
         return ticker, {
-            'trend': 0, 'kalman_price': np.nan, 'upper_band': np.nan,
-            'lower_band': np.nan, 'efficiency_ratio': 0.5,
-            'divergence': 'none', 'trend_consistency': False, 'signal_strength': 0.0,
+            'signal_strength': 0.0,
             'error': str(e)
         }
 
@@ -214,13 +210,6 @@ def _get_ml_ensemble_fallback(ticker: str) -> Dict:
 def _get_kalman_hull_fallback(ticker: str) -> Dict:
     """Fallback Kalman Hull output for failed processing"""
     return {
-        'trend': 0,
-        'kalman_price': np.nan,
-        'upper_band': np.nan,
-        'lower_band': np.nan,
-        'efficiency_ratio': 0.5,
-        'divergence': 'none',
-        'trend_consistency': False,
         'signal_strength': 0.0,
         'is_fallback': True
     }
