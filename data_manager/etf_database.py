@@ -1,7 +1,7 @@
-# etf_database.py - Pure ETF Data Storage
+# etf_database.py - Enhanced ETF Data with Names
 """
-ETF Database - Static data storage only
-Contains only ETF ticker mappings, classifications, and static descriptive fields
+ETF Database - Enhanced with Names
+Contains ETF ticker mappings, classifications, static descriptive fields, and names
 All logic, patterns, constraints, and configuration moved to config.py
 """
 
@@ -12,12 +12,12 @@ class ETFDatabase:
     """
     
     def __init__(self):
-        # Pure data storage - just the facts about each ETF
+        # Pure data storage with names - just the facts about each ETF
         self.etf_data = {
-            'XALG.AX': {'region': 'GLOBAL', 'subcategory': 'Broad Exposure', 'benchmark': 'MSCI World Net Return Index (AUD)', 'type': 'broad_market'},
-            'XASG.AX': {'region': 'GLOBAL', 'subcategory': 'Broad Exposure', 'benchmark': 'MSCI World Net Total Return Index (AUD)', 'type': 'broad_market'},
-            'AGX1.AX': {'region': 'GLOBAL', 'subcategory': 'Broad Exposure', 'benchmark': 'N/A', 'type': 'broad_market'},
-            'BAOR.AX': {'region': 'GLOBAL', 'subcategory': 'Broad Exposure', 'benchmark': 'MSCI All Countries World Index ex Australia Accumulation Index Net in AUD', 'type': 'broad_market'},
+            'XALG.AX': {'region': 'GLOBAL', 'subcategory': 'Broad Exposure', 'benchmark': 'MSCI World Net Return Index (AUD)', 'type': 'broad_market', 'name': 'Alphinity Global Equity - Active ETF (Managed Fund)'},
+            'XASG.AX': {'region': 'GLOBAL', 'subcategory': 'Broad Exposure', 'benchmark': 'MSCI World Net Total Return Index (AUD)', 'type': 'broad_market', 'name': 'Alphinity Global Sustainable Equity Fund - Active ETF (Managed Fund)'},
+            'AGX1.AX': {'region': 'GLOBAL', 'subcategory': 'Broad Exposure', 'benchmark': 'N/A', 'type': 'broad_market', 'name': 'BetaShares Asia Technology Tigers ETF'},
+            'BAOR.AX': {'region': 'GLOBAL', 'subcategory': 'Broad Exposure', 'benchmark': 'MSCI All Countries World Index ex Australia Accumulation Index Net in AUD', 'type': 'broad_market', 'name': 'BetaShares Asia Technology Tigers ETF - Currency Hedged'},
             'DAOR.AX': {'region': 'GLOBAL', 'subcategory': 'Broad Exposure', 'benchmark': 'MSCI All Countries World Index ex Australia Accumulation Index Net in AUD (hedged)', 'type': 'broad_market'},
             'ADEF.AX': {'region': 'GLOBAL', 'subcategory': 'Broad Exposure', 'benchmark': 'MSCI All Country World Index (ex Australia) before fees', 'type': 'broad_market'},
             'GLOB.AX': {'region': 'GLOBAL', 'subcategory': 'Broad Exposure', 'benchmark': 'MSCI World Net Total Return Index (AUD)', 'type': 'broad_market'},
@@ -79,10 +79,10 @@ class ETFDatabase:
             'HVLU.AX': {'region': 'GLOBAL', 'subcategory': 'Broad Exposure', 'benchmark': 'MSCI World ex Australia Enhanced Value Top 250 Select 100% Hedged to AUD Index', 'type': 'broad_market'},
             'VLUE.AX': {'region': 'GLOBAL', 'subcategory': 'Broad Exposure', 'benchmark': 'MSCI’s World ex Australia Enhanced Value Top 250 Select', 'type': 'broad_market'},
             'GOAT.AX': {'region': 'GLOBAL', 'subcategory': 'Broad Exposure', 'benchmark': 'Morningstar® Developed Markets ex-Australia Wide Moat Focus', 'type': 'broad_market'},
-            'VDBA.AX': {'region': 'GLOBAL', 'subcategory': 'Broad Exposure', 'benchmark': 'Balanced Composite Index', 'type': 'broad_market'},
+            'VDBA.AX': {'region': 'GLOBAL', 'subcategory': 'Broad Exposure', 'benchmark': 'Balanced Composite Index', 'type': 'broad_market', 'name': 'Vanguard Diversified Balanced Index ETF'},
             'VDCO.AX': {'region': 'GLOBAL', 'subcategory': 'Broad Exposure', 'benchmark': 'Conservative Composite Index', 'type': 'broad_market'},
             'VDGR.AX': {'region': 'GLOBAL', 'subcategory': 'Broad Exposure', 'benchmark': 'Growth Composite Index', 'type': 'broad_market'},
-            'VDHG.AX': {'region': 'GLOBAL', 'subcategory': 'Broad Exposure', 'benchmark': 'High Growth Composite', 'type': 'broad_market'},
+            'VDHG.AX': {'region': 'GLOBAL', 'subcategory': 'Broad Exposure', 'benchmark': 'High Growth Composite', 'type': 'broad_market', 'name': 'Vanguard Diversified High Growth Index ETF'},
             'VESG.AX': {'region': 'GLOBAL', 'subcategory': 'Broad Exposure', 'benchmark': 'FTSE Developed ex-Aus, ex Non-renewable, Vice Products & Weapons', 'type': 'broad_market'},
             'VMIN.AX': {'region': 'GLOBAL', 'subcategory': 'Broad Exposure', 'benchmark': 'FTSE Global All Cap', 'type': 'broad_market'},
             'VVLU.AX': {'region': 'GLOBAL', 'subcategory': 'Broad Exposure', 'benchmark': 'N/A', 'type': 'broad_market'},
@@ -104,7 +104,7 @@ class ETFDatabase:
             'DRUG.AX': {'region': 'GLOBAL', 'subcategory': 'Sectors', 'benchmark': 'Nasdaq Global ex-Australia Healthcare (Hedged AUD)', 'type': 'sector'},
             'RBTZ.AX': {'region': 'GLOBAL', 'subcategory': 'Sectors', 'benchmark': 'Indxx Global Robotics & Artificial Intelligence Thematic', 'type': 'growth'},
             'ROYL.AX': {'region': 'GLOBAL', 'subcategory': 'Sectors', 'benchmark': 'Solactive Global Royalties Index', 'type': 'sector'},
-            'ETHI.AX': {'region': 'GLOBAL', 'subcategory': 'Sectors', 'benchmark': 'Nasdaq Future Global Sustainability Leaders', 'type': 'sector'},
+            'ETHI.AX': {'region': 'GLOBAL', 'subcategory': 'Sectors', 'benchmark': 'Nasdaq Future Global Sustainability Leaders', 'type': 'sector', 'name': 'BetaShares Global Sustainability Leaders ETF'},
             'HETH.AX': {'region': 'GLOBAL', 'subcategory': 'Sectors', 'benchmark': 'NASDAQ Future Global Sustainability Leaders Currency Hedged AUD', 'type': 'sector'},
             'BNKS.AX': {'region': 'GLOBAL', 'subcategory': 'Sectors', 'benchmark': 'NASDAQ Global ex-Australia Banks Hedged AUD', 'type': 'sector'},
             'MTAV.AX': {'region': 'GLOBAL', 'subcategory': 'Sectors', 'benchmark': 'Bloomberg Metaverse Select Index', 'type': 'growth'},
@@ -152,7 +152,7 @@ class ETFDatabase:
             'INCM.AX': {'region': 'GLOBAL', 'subcategory': 'Yield', 'benchmark': 'NASDAQ Global Income Leaders NTR', 'type': 'dividend'},
             'HJHI.AX': {'region': 'GLOBAL', 'subcategory': 'Yield', 'benchmark': 'DJI Islamic Market Global Select Dividend Index', 'type': 'dividend'},
             'WDIV.AX': {'region': 'GLOBAL', 'subcategory': 'Yield', 'benchmark': 'S&P Global Dividend Aristocrats', 'type': 'dividend'},
-            'VEU.AX': {'region': 'GLOBAL', 'subcategory': 'Ex-US / Canada', 'benchmark': 'FTSE All World Ex-US', 'type': 'broad_market'},
+            'VEU.AX': {'region': 'GLOBAL', 'subcategory': 'Ex-US / Canada', 'benchmark': 'FTSE All World Ex-US', 'type': 'broad_market', 'name': 'Vanguard MSCI Index International Shares ETF'},
             'CGUN.AX': {'region': 'GLOBAL', 'subcategory': 'Ex-Australia', 'benchmark': 'MSCI AC World Accum Index ex-Aust', 'type': 'broad_market'},
             'CGHE.AX': {'region': 'GLOBAL', 'subcategory': 'Ex-Australia', 'benchmark': 'MSCI AC World Accum Index ex-Aust', 'type': 'broad_market'},
             'DFGH.AX': {'region': 'GLOBAL', 'subcategory': 'Ex-Australia', 'benchmark': 'MSCI World ex Australia Index (net div.)', 'type': 'broad_market'},
@@ -163,7 +163,7 @@ class ETFDatabase:
             'WXOZ.AX': {'region': 'GLOBAL', 'subcategory': 'Ex-Australia', 'benchmark': 'S&P Developed ex-Australia LargeMidCap AUD', 'type': 'broad_market'},
             'QUAL.AX': {'region': 'GLOBAL', 'subcategory': 'Ex-Australia', 'benchmark': 'MSCI World ex-Australia Quality', 'type': 'broad_market'},
             'QHAL.AX': {'region': 'GLOBAL', 'subcategory': 'Ex-Australia', 'benchmark': 'MSCI World ex-Australia Quality', 'type': 'broad_market'},
-            'VGS.AX': {'region': 'GLOBAL', 'subcategory': 'Ex-Australia', 'benchmark': 'MSCI World ex-Australia', 'type': 'broad_market'},
+            'VGS.AX': {'region': 'GLOBAL', 'subcategory': 'Ex-Australia', 'benchmark': 'MSCI World ex-Australia', 'type': 'broad_market', 'name': 'Vanguard MSCI Index International Shares ETF'},
             'VGAD.AX': {'region': 'GLOBAL', 'subcategory': 'Ex-Australia', 'benchmark': 'MSCI World ex-Australia (Hedged AUD)', 'type': 'broad_market'},
             'EMMG.AX': {'region': 'GLOBAL', 'subcategory': 'Emerging Markets', 'benchmark': 'N/A', 'type': 'broad_market'},
             'FEMX.AX': {'region': 'GLOBAL', 'subcategory': 'Emerging Markets', 'benchmark': 'N/A', 'type': 'broad_market'},
@@ -238,13 +238,13 @@ class ETFDatabase:
             'GEAR.AX': {'region': 'AUSTRALIA', 'subcategory': 'Index Tracking', 'benchmark': 'S&P/ASX 200', 'type': 'broad_market'},
             'ATEC.AX': {'region': 'AUSTRALIA', 'subcategory': 'Index Tracking', 'benchmark': 'S&P/ASX All Technology', 'type': 'growth'},
             'FHCO.AX': {'region': 'AUSTRALIA', 'subcategory': 'Index Tracking', 'benchmark': 'S&P/ASX 200 Accumulation Index', 'type': 'broad_market'},
-            'IOZ.AX': {'region': 'AUSTRALIA', 'subcategory': 'Index Tracking', 'benchmark': 'S&P/ASX 200', 'type': 'broad_market'},
+            'IOZ.AX': {'region': 'AUSTRALIA', 'subcategory': 'Index Tracking', 'benchmark': 'S&P/ASX 200', 'type': 'broad_market', 'name': 'iShares Core S&P/ASX 200 ETF'},
             'ILC.AX': {'region': 'AUSTRALIA', 'subcategory': 'Index Tracking', 'benchmark': 'S&P/ASX 20', 'type': 'broad_market'},
             'MQAE.AX': {'region': 'AUSTRALIA', 'subcategory': 'Index Tracking', 'benchmark': 'S&P/ASX 300 Accumulation Index', 'type': 'broad_market'},
             'STW.AX': {'region': 'AUSTRALIA', 'subcategory': 'Index Tracking', 'benchmark': 'S&P/ASX 200', 'type': 'broad_market'},
             'E200.AX': {'region': 'AUSTRALIA', 'subcategory': 'Index Tracking', 'benchmark': 'S&P/ASX 200 ESG', 'type': 'broad_market'},
             'SFY.AX': {'region': 'AUSTRALIA', 'subcategory': 'Index Tracking', 'benchmark': 'S&P/ASX 50', 'type': 'broad_market'},
-            'VAS.AX': {'region': 'AUSTRALIA', 'subcategory': 'Index Tracking', 'benchmark': 'S&P/ASX 300', 'type': 'broad_market'},
+            'VAS.AX': {'region': 'AUSTRALIA', 'subcategory': 'Index Tracking', 'benchmark': 'S&P/ASX 300', 'type': 'broad_market', 'name': 'Vanguard Australian Shares Index ETF'},
             'IMPQ.AX': {'region': 'AUSTRALIA', 'subcategory': 'Small Cap', 'benchmark': 'N/A', 'type': 'growth'},
             'ISO.AX': {'region': 'AUSTRALIA', 'subcategory': 'Small Cap', 'benchmark': 'S&P/ASX Small Ordinaries', 'type': 'growth'},
             'KSM.AX': {'region': 'AUSTRALIA', 'subcategory': 'Small Cap', 'benchmark': 'N/A', 'type': 'growth'},
@@ -313,7 +313,7 @@ class ETFDatabase:
             'PAVE.AX': {'region': 'US / EUROPE / ASIA', 'subcategory': 'US Broad Exposure', 'benchmark': 'Indxx U.S. Infrastructure Development Index', 'type': 'sector'},
             'MHOT.AX': {'region': 'US / EUROPE / ASIA', 'subcategory': 'US Broad Exposure', 'benchmark': 'Morningstar Wide Moat Focus AUD Hedged Index', 'type': 'broad_market'},
             'MOAT.AX': {'region': 'US / EUROPE / ASIA', 'subcategory': 'US Broad Exposure', 'benchmark': 'Morningstar® Wide Moat Focus', 'type': 'broad_market'},
-            'VTS.AX': {'region': 'US / EUROPE / ASIA', 'subcategory': 'US Broad Exposure', 'benchmark': 'CRSP US Total Market', 'type': 'broad_market'},
+            'VTS.AX': {'region': 'US / EUROPE / ASIA', 'subcategory': 'US Broad Exposure', 'benchmark': 'CRSP US Total Market', 'type': 'broad_market', 'name': 'Vanguard US Total Market Shares Index ETF'},
             'IVV.AX': {'region': 'US / EUROPE / ASIA', 'subcategory': 'US S&P 500', 'benchmark': 'S&P 500', 'type': 'broad_market'},
             'IHVV.AX': {'region': 'US / EUROPE / ASIA', 'subcategory': 'US S&P 500', 'benchmark': 'S&P 500', 'type': 'broad_market'},
             'JEPI.AX': {'region': 'US / EUROPE / ASIA', 'subcategory': 'US S&P 500', 'benchmark': "Standard & Poor's 500 Total Return Index", 'type': 'dividend'},
@@ -358,7 +358,7 @@ class ETFDatabase:
             'BCOM.AX': {'region': 'COMMODITIES', 'subcategory': 'Broad Exposure', 'benchmark': 'Bloomberg Commodity Index Excess Return 3 Month Forward', 'type': 'commodity'},
             'ETPMPM.AX': {'region': 'COMMODITIES', 'subcategory': 'Broad Exposure', 'benchmark': 'N/A', 'type': 'commodity'},
             'QAU.AX': {'region': 'COMMODITIES', 'subcategory': 'Gold', 'benchmark': 'Physical Gold', 'type': 'commodity'},
-            'GOLD.AX': {'region': 'COMMODITIES', 'subcategory': 'Gold', 'benchmark': 'Physical Gold', 'type': 'commodity'},
+            'GOLD.AX': {'region': 'COMMODITIES', 'subcategory': 'Gold', 'benchmark': 'Physical Gold', 'type': 'commodity', 'name': 'Global X Physical Gold Structured'},
             'MNRS.AX': {'region': 'COMMODITIES', 'subcategory': 'Gold', 'benchmark': 'Nasdaq Global ex-Australia Gold Miners Hedged', 'type': 'commodity'},
             'GXLD.AX': {'region': 'COMMODITIES', 'subcategory': 'Gold', 'benchmark': 'Solactive Gold Spot London Close Index', 'type': 'commodity'},
             'GLDN.AX': {'region': 'COMMODITIES', 'subcategory': 'Gold', 'benchmark': 'LMBA Gold Price PM AUD Index', 'type': 'commodity'},
@@ -402,6 +402,57 @@ class ETFDatabase:
             'GRIN.AX': {'region': 'GLOBAL', 'subcategory': 'Sectors', 'benchmark': 'FTSE Developed Core Infrastructure 50/50', 'type': 'sector'}
         }
         
-        print(f"ETF Database loaded: {len(self.etf_data)} ETFs (data storage only)")
+        print(f"ETF Database loaded: {len(self.etf_data)} ETFs (with names)")
+    
+    def get_etf_name(self, ticker: str) -> str:
+        """
+        Get ETF name from integrated database
+        
+        Args:
+            ticker: ETF ticker symbol
+            
+        Returns:
+            ETF name or ticker if not found
+        """
+        if ticker in self.etf_data:
+            return self.etf_data[ticker].get('name', ticker)
+        return ticker
+    
+    def get_etf_info_with_name(self, ticker: str) -> dict:
+        """
+        Get complete ETF information including name
+        
+        Args:
+            ticker: ETF ticker symbol
+            
+        Returns:
+            Complete ETF info with name included
+        """
+        return self.etf_data.get(ticker, {})
+    
+    def search_etfs_by_name(self, search_term: str) -> list:
+        """
+        Search ETFs by name
+        
+        Args:
+            search_term: Term to search for in ETF names
+            
+        Returns:
+            List of matching ETFs with ticker and name
+        """
+        results = []
+        search_lower = search_term.lower()
+        
+        for ticker, info in self.etf_data.items():
+            name = info.get('name', '').lower()
+            if search_lower in name:
+                results.append({
+                    'ticker': ticker,
+                    'name': info.get('name', ''),
+                    'region': info.get('region', ''),
+                    'type': info.get('type', '')
+                })
+        
+        return results
     
     
