@@ -21,6 +21,9 @@ try:
 except ImportError:
     ML_AVAILABLE = False
 
+# Cache external data at module level to prevent repeated downloads
+_CACHED_EXTERNAL_DATA = None
+
 class MLEnsembleProduction:
     """
     Production ML Ensemble with 10 validated features
@@ -28,8 +31,9 @@ class MLEnsembleProduction:
     """
     
     def __init__(self):
-        self.forecast_horizon = 60
-        self.max_forecast_range = 0.15
+        global _CACHED_EXTERNAL_DATA
+        self.forecast_horizon = 20
+        self.max_forecast_range = 0.10  # Reduced range for shorter horizon
         
         # Production feature set - 10 validated indicators
         self.production_features = [
@@ -59,8 +63,14 @@ class MLEnsembleProduction:
             'equity_bonds_corr': (-1.0, 1.0)     # Correlation range
         }
         
-        # Load external data for regime features
-        self.external_data = self._load_external_data()
+        # Use cached external data if available, otherwise fetch once
+        if _CACHED_EXTERNAL_DATA is None:
+            print(" Loading external market data for ML features...")
+            self.external_data = self._load_external_data()
+            _CACHED_EXTERNAL_DATA = self.external_data  # Cache for future instances
+        else:
+            self.external_data = _CACHED_EXTERNAL_DATA
+            print(" Using cached external market data")
     
     def _load_external_data(self) -> Dict:
         """Load external market data for regime features"""
@@ -300,7 +310,7 @@ class MLEnsembleProduction:
     
     def _train_production_models(self, prices: pd.Series, X: np.ndarray) -> Dict:
         """Train Random Forest + Ridge ensemble for production"""
-        if len(prices) < 200:
+        if len(prices) < 50:  # Reduced minimum for 20-day forecasts
             return {'rf': None, 'ridge': None, 'scaler': None, 'feature_importance': []}
         
         try:
@@ -308,16 +318,15 @@ class MLEnsembleProduction:
             returns = prices.pct_change().dropna()
             
             # Create feature matrix for training
-            lookback = len(prices) - self.forecast_horizon - 100
-            if lookback < 100:
+            lookback = len(prices) - self.forecast_horizon - 20
+            if lookback < 30:  # Reduced lookback requirement
                 return {'rf': None, 'ridge': None, 'scaler': None, 'feature_importance': []}
             
             # Train models
             rf = RandomForestRegressor(n_estimators=50, max_depth=8, random_state=42)
             ridge = Ridge(alpha=1.0, random_state=42)
             
-            # For production, use simple training approach
-            # Use cumulative return as target for 60-day forecast
+            # For 20-day production forecasts
             cumulative_return = returns.tail(self.forecast_horizon).sum()
             rf.fit(X, [cumulative_return])
             ridge.fit(X, [cumulative_return])
@@ -363,14 +372,14 @@ class MLEnsembleProduction:
         Returns:
             Dict with validation metrics
         """
-        if not ML_AVAILABLE or len(prices) < 312:  # 252 train + 60 test
+        if not ML_AVAILABLE or len(prices) < 120:  # 100 train + 20 test minimum
             return {'mae': np.nan, 'hit_rate': np.nan}
         
         try:
-            # Proper walk-forward validation
-            window_size = 252  # Training window
-            forecast_horizon = 60
-            step_size = 30  # Test every 30 days
+            # Proper walk-forward validation for 20-day forecasts
+            window_size = 100  # Reduced training window for faster validation
+            forecast_horizon = 20
+            step_size = 15  # Test every 15 days for more validation points
             
             forecasts = []
             actuals = []
@@ -389,7 +398,7 @@ class MLEnsembleProduction:
                     train_prices = prices.iloc[train_start:train_end]
                     test_prices = prices.iloc[train_end:end_idx]
                     
-                    if len(train_prices) < 200 or len(test_prices) < forecast_horizon:
+                    if len(train_prices) < 50 or len(test_prices) < forecast_horizon:
                         continue
                     
                     # Extract features from END of training period
@@ -415,7 +424,6 @@ class MLEnsembleProduction:
                     actuals.append(actual_return)
                     
                 except Exception as e:
-                    print(f"Window validation error: {e}")
                     continue
             
             if len(forecasts) < 3:  # Need multiple predictions for meaningful hit rate

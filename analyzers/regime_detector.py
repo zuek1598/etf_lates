@@ -5,8 +5,8 @@ Implements cross-asset correlation analysis and regime classification
 
 Key Features:
 - 5 correlation pairs for regime analysis
-- 63-day rolling correlation windows
-- 252-day regime classification windows
+- 21-day rolling correlation windows (optimized for 20-day forecasts)
+- 100-day regime classification windows
 - Sub-regime detection (8-10 types)
 - Regime transition identification
 - Confidence scoring based on correlation stability
@@ -28,13 +28,13 @@ warnings.filterwarnings('ignore')
 class RegimeDetector:
     """Advanced regime detection using cross-asset correlations"""
     
-    def __init__(self, correlation_window: int = 63, regime_window: int = 252):
+    def __init__(self, correlation_window: int = 21, regime_window: int = 100):
         """
         Initialize regime detector
         
         Args:
-            correlation_window: Rolling window for correlation calculation (63 days = 3 months)
-            regime_window: Window for regime classification (252 days = 1 year)
+            correlation_window: Rolling window for correlation calculation (21 days = ~1 month)
+            regime_window: Window for regime classification (100 days = 5 months)
         """
         self.correlation_window = correlation_window
         self.regime_window = regime_window
