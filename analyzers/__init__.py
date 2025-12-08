@@ -4,18 +4,20 @@ Contains analysis components for ETF evaluation
 """
 
 from .risk_component import RiskComponent
-from .ml_ensemble import MLEnsemble
-# from .volume_intelligence import VolumeIntelligence  # REMOVED - no validated factors
+from .ml_ensemble_production import MLEnsembleProduction
 from .percentile_ranker import PercentileRanker
-# from .scoring_system_growth import GrowthScoringSystem  # REMOVED - unused
 from .etf_risk_classifier import ETFRiskClassifier
+from .regime_detector import RegimeDetector
+from .batch_data_fetcher import BatchDataFetcher
+from .kalman_hull import calculate_adaptive_kalman_hull
 
 __all__ = [
     'RiskComponent',
-    'MLEnsemble',
-    # 'VolumeIntelligence',  # REMOVED - no validated factors
+    'MLEnsembleProduction',
     'PercentileRanker',
-    # 'GrowthScoringSystem',  # REMOVED - unused
-    'ETFRiskClassifier'
+    'ETFRiskClassifier',
+    'RegimeDetector',
+    'BatchDataFetcher',
+    'calculate_adaptive_kalman_hull'
 ]
 

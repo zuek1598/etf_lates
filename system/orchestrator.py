@@ -18,7 +18,7 @@ from analyzers.ml_ensemble_production import MLEnsembleProduction
 # from analyzers.volume_intelligence import VolumeIntelligence  # REMOVED - no validated factors
 from analyzers.etf_risk_classifier import ETFRiskClassifier
 from analyzers.percentile_ranker import PercentileRanker
-from indicators.kalman_hull import calculate_adaptive_kalman_hull
+from analyzers.kalman_hull import calculate_adaptive_kalman_hull
 from data_manager.data_manager import ETFDataManager as ETFDatabase
 from utilities.validators import validate_output
 from multiprocessing import Pool, TimeoutError

@@ -57,48 +57,6 @@ def validate_kalman_hull_output(output: Dict) -> bool:
     return True
 
 
-def validate_volume_intelligence(output: Dict) -> bool:
-    """
-    Validate Volume Intelligence output
-    Ensures spike score, correlation, and divergence are within ranges
-    """
-    required_fields = ['spike_score', 'price_volume_correlation', 
-                      'accumulation_distribution', 'volume_confidence']
-    
-    # Check all required fields exist
-    for field in required_fields:
-        if field not in output:
-            raise ValueError(f"Missing required field: {field}")
-    
-    # Validate spike score [0, 100]
-    spike = output['spike_score']
-    if not isinstance(spike, (int, float)):
-        raise ValueError(f"spike_score must be numeric, got {type(spike)}")
-    if not (0 <= spike <= 100):
-        raise ValueError(f"spike_score must be [0,100], got {spike}")
-    
-    # Validate correlation [-1, 1]
-    corr = output['price_volume_correlation']
-    if not isinstance(corr, (int, float)):
-        raise ValueError(f"price_volume_correlation must be numeric, got {type(corr)}")
-    if not (-1 <= corr <= 1):
-        raise ValueError(f"price_volume_correlation must be [-1,1], got {corr}")
-    
-    # Validate accumulation_distribution
-    ad = output['accumulation_distribution']
-    if ad not in ['accumulation', 'distribution', 'neutral']:
-        raise ValueError(f"accumulation_distribution must be accumulation/distribution/neutral, got {ad}")
-    
-    # Validate volume confidence [0, 1]
-    conf = output['volume_confidence']
-    if not isinstance(conf, (int, float)):
-        raise ValueError(f"volume_confidence must be numeric, got {type(conf)}")
-    if not (0 <= conf <= 1):
-        raise ValueError(f"volume_confidence must be [0,1], got {conf}")
-    
-    return True
-
-
 def validate_ml_ensemble_output(output: Dict) -> bool:
     """
     Validate ML Ensemble output
@@ -249,7 +207,6 @@ def validate_output(component_name: str, output: Dict) -> bool:
     validators = {
         'risk_component': validate_risk_component_output,
         'kalman_hull': validate_kalman_hull_output,
-        'volume_intelligence': validate_volume_intelligence,
         'ml_ensemble': validate_ml_ensemble_output,
     }
     
