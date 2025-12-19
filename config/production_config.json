@@ -1,0 +1,88 @@
+{
+  "features": [
+    "volatility",
+    "gold_equity_corr",
+    "volatility_level",
+    "signal_quality",
+    "vix_rates_corr",
+    "cross_asset_dispersion",
+    "macd_histogram",
+    "macd_signal",
+    "momentum",
+    "equity_bonds_corr"
+  ],
+  "feature_categories": {
+    "volatility": "basic_technical",
+    "momentum": "basic_technical",
+    "volatility_level": "macd_v",
+    "signal_quality": "macd_v",
+    "macd_histogram": "macd_v",
+    "macd_signal": "macd_v",
+    "gold_equity_corr": "regime",
+    "vix_rates_corr": "regime",
+    "cross_asset_dispersion": "regime",
+    "equity_bonds_corr": "regime"
+  },
+  "balanced_scoring_weights": {
+    "cv_improvement": 0.4,
+    "temporal_importance": 0.3,
+    "correlation": 0.3
+  },
+  "validation_thresholds": {
+    "significance_level": 0.05,
+    "min_cv_improvement": 0.02,
+    "min_temporal_importance": 0.02,
+    "max_correlation": 0.7,
+    "min_samples_per_feature": 15
+  },
+  "model_config": {
+    "random_forest": {
+      "n_estimators": 200,
+      "max_depth": 10,
+      "min_samples_split": 5,
+      "min_samples_leaf": 2,
+      "random_state": 42,
+      "n_jobs": -1
+    },
+    "ridge_regression": {
+      "alpha": 1.0,
+      "random_state": 42
+    }
+  },
+  "performance_expectations": {
+    "expected_improvement_range": "20-30%",
+    "conservative_estimate": "20%",
+    "realistic_target": "25%",
+    "optimistic_scenario": "30%",
+    "risk_level": "LOW",
+    "temporal_robustness": "HIGH",
+    "generalization_confidence": "HIGH"
+  },
+  "covid_bias_adjustments": {
+    "volatility_bias_detected": true,
+    "bias_magnitude": 0.455,
+    "adjustment_required": true,
+    "adjustment_factor": 0.545,
+    "monitoring_required": true
+  },
+  "data_requirements": {
+    "min_history_length": 120,
+    "optimal_history_length": 252,
+    "required_columns": [
+      "Close"
+    ],
+    "optional_columns": [
+      "Volume"
+    ],
+    "data_quality_threshold": 0.95
+  },
+  "monitoring_config": {
+    "performance_monitoring_frequency": "monthly",
+    "recalibration_frequency": "quarterly",
+    "min_samples_for_recalibration": 100,
+    "performance_degradation_threshold": 0.1,
+    "feature_drift_threshold": 0.2
+  },
+  "version": "1.0.0",
+  "last_updated": "2025-12-04T16:24:39.550646"
+}

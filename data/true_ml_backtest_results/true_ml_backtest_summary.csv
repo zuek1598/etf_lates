@@ -1,0 +1,2 @@
+total_return,benchmark_return,excess_return,sharpe_ratio,max_drawdown,num_rebalances,backtest_date
+-0.03185783844307011,0.1893984584928614,-0.22125629693593152,0.02213833766789246,-0.2323596213513427,4,2025-12-17 15:42:12

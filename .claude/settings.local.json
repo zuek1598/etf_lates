@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(timeout 180 python:*)",
+      "Bash(python scripts/test_cross_sectional_percentiles.py:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
