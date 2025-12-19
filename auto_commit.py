@@ -48,6 +48,13 @@ def auto_commit_and_push():
     
     print(f"✅ Committed changes: {commit_message}")
     
+    # Check if remote exists before pushing
+    success, stdout, stderr = run_git_command("git remote")
+    if not success or not stdout.strip():
+        print("ℹ️  No remote repository configured - skipping push")
+        print("   To add a remote: git remote add origin <repository-url>")
+        return True
+    
     # Push to GitHub
     success, stdout, stderr = run_git_command("git push origin main")
     if not success:
