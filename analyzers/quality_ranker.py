@@ -114,146 +114,31 @@ class QualityRanker:
         
         return df
     
-    def select_portfolio(self, quality_scores: pd.DataFrame, 
-                        current_portfolio: List[str] = None) -> Dict:
-        """Select 3-4 ETFs for portfolio with diversification rules"""
+    def select_portfolio(self, quality_scores: pd.DataFrame) -> Dict:
+        """Select top 10 ETFs based purely on quality score (no diversification constraints)"""
         
-        print("\nSelecting portfolio...")
+        # Filter by minimum hit rate
+        qualified = quality_scores[quality_scores['hit_rate'] >= self.min_hit_rate]
         
-        if len(quality_scores) == 0:
+        if len(qualified) == 0:
             return {'portfolio': [], 'reason': 'No ETFs meet minimum hit rate'}
         
-        # Get risk categories for diversification
-        portfolio = []
-        selected_risks = set()
+        # Sort by score and return top 10
+        top_etfs = qualified.sort_values('score', ascending=False).head(10)
         
-        # Sort by score first
-        sorted_scores = quality_scores.sort_values('score', ascending=False)
-        
-        # Select top ETFs ensuring diversification
-        portfolio_sectors = set()
-        
-        for _, row in sorted_scores.iterrows():
-            if len(portfolio) >= 4:
-                break
-                
-            etf = row['etf']
-            
-            # Determine sector
-            etf_upper = etf.upper()
-            sector = 'other'
-            if any(keyword in etf_upper for keyword in self.commodity_keywords):
-                sector = 'commodity'
-            elif any(keyword in etf_upper for keyword in self.tech_keywords):
-                sector = 'technology'
-            elif any(keyword in etf_upper for keyword in self.finance_keywords):
-                sector = 'finance'
-            
-            # Get risk category
-            try:
-                risk_data = self.risk_classifier.classify_etfs([etf])
-                # classify_etfs returns tuple (classifications_dict, summary_dict)
-                classifications = risk_data[0] if isinstance(risk_data, tuple) else risk_data
-                # classify_etfs returns dict with low/medium/high risk ETF lists
-                if etf in classifications.get('low_risk_etfs', {}):
-                    risk_category = 'low'
-                elif etf in classifications.get('medium_risk_etfs', {}):
-                    risk_category = 'medium'
-                elif etf in classifications.get('high_risk_etfs', {}):
-                    risk_category = 'high'
-                else:
-                    risk_category = 'medium'
-            except:
-                risk_category = 'medium'
-            
-            # Check correlation with existing portfolio
-            if portfolio:
-                correlations = self._check_correlations(etf, portfolio)
-                if correlations['max_correlation'] > 0.70:  # Tightened from 0.85
-                    print(f"  Skipping {etf}: too correlated ({correlations['max_correlation']:.2f})")
-                    continue
-            
-            # For first 3 positions, ensure different risk categories AND sectors
-            if len(portfolio) < 3:
-                # Skip if we already have this sector (unless no choice)
-                if sector in portfolio_sectors and len(portfolio_sectors) < 3:
-                    # Check if we have ETFs from other sectors available
-                    other_sectors_available = False
-                    for _, future_row in sorted_scores.iloc[len(portfolio):].iterrows():
-                        future_etf = future_row['etf']
-                        future_upper = future_etf.upper()
-                        future_sector = 'other'
-                        if any(kw in future_upper for kw in self.commodity_keywords):
-                            future_sector = 'commodity'
-                        elif any(kw in future_upper for kw in self.tech_keywords):
-                            future_sector = 'technology'
-                        elif any(kw in future_upper for kw in self.finance_keywords):
-                            future_sector = 'finance'
-                        
-                        if future_sector not in portfolio_sectors:
-                            other_sectors_available = True
-                            break
-                    
-                    if other_sectors_available:
-                        print(f"  Skipping {etf}: already have {sector} sector")
-                        continue
-                
-                # Skip if we already have this risk category
-                if risk_category in selected_risks and len(selected_risks) < 3:
-                    # Check if we have other risk categories available
-                    remaining_risks = set()
-                    for _, future_row in sorted_scores.iloc[len(portfolio):].iterrows():
-                        try:
-                            future_risk_data = self.risk_classifier.classify_etfs([future_row['etf']])
-                            # classify_etfs returns tuple (classifications_dict, summary_dict)
-                            classifications = future_risk_data[0] if isinstance(future_risk_data, tuple) else future_risk_data
-                            # classify_etfs returns dict with low/medium/high risk ETF lists
-                            if future_row['etf'] in classifications.get('low_risk_etfs', {}):
-                                future_risk = 'low'
-                            elif future_row['etf'] in classifications.get('medium_risk_etfs', {}):
-                                future_risk = 'medium'
-                            elif future_row['etf'] in classifications.get('high_risk_etfs', {}):
-                                future_risk = 'high'
-                            else:
-                                future_risk = 'medium'
-                            remaining_risks.add(future_risk)
-                        except:
-                            remaining_risks.add('medium')
-                    
-                    if len(remaining_risks - selected_risks) > 0:
-                        print(f"  Skipping {etf}: already have {risk_category} risk category")
-                        continue
-                
-                portfolio.append(etf)
-                selected_risks.add(risk_category)
-                portfolio_sectors.add(sector)
-                print(f"  Selected {etf} (score: {row['score']:.2f}, risk: {risk_category}, sector: {sector})")
-            else:
-                # 4th ETF can be any high scorer
-                portfolio.append(etf)
-                print(f"  Added {etf} as 4th position (score: {row['score']:.2f}, sector: {sector})")
-        
-        # If we have less than 3 ETFs, try to fill with top scorers
-        if len(portfolio) < 3:
-            print(f"  Only {len(portfolio)} ETFs selected, filling with top scorers...")
-            for _, row in sorted_scores.iterrows():
-                if row['etf'] not in portfolio:
-                    portfolio.append(row['etf'])
-                    print(f"  Added {row['etf']} to reach minimum portfolio size")
-                    if len(portfolio) >= 3:
-                        break
-        
-        # Check if we should rebalance from current portfolio
-        should_rebalance = True
-        if current_portfolio:
-            should_rebalance = self._should_rebalance(
-                current_portfolio, portfolio[:3], quality_scores
-            )
+        print(f"\nTop 10 ETFs by Quality Score:")
+        print("-" * 80)
+        for i, (_, row) in enumerate(top_etfs.iterrows(), 1):
+            print(f"{i:2d}. {row['etf']:8s} - Score: {row['score']:6.2f} | "
+                  f"Hit Rate: {row['hit_rate']*100:5.1f}% | "
+                  f"Conviction: {row['conviction']:5.2f} | "
+                  f"Stability: {row['stability']:5.2f} | "
+                  f"Forecast: {row['forecast']:5.2f}%")
         
         return {
-            'portfolio': portfolio,
-            'should_rebalance': should_rebalance,
-            'reason': 'Quality-based selection with diversification'
+            'portfolio': top_etfs['etf'].tolist(),
+            'top_10_scores': top_etfs.to_dict('records'),
+            'reason': 'Top 10 ETFs by quality score (no diversification constraints)'
         }
     
     def _fetch_historical_data(self, etf_list: List[str]) -> Dict[str, pd.DataFrame]:
