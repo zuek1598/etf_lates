@@ -38,6 +38,7 @@ Rank  Ticker      Name                                              Score   Fore
 ```bash
 python run_dashboard.py
 ```
+Dashboard will be available at: **http://127.0.0.1:8050/**
 
 ### 3. System Architecture
 ```bash
@@ -45,15 +46,18 @@ python run_dashboard.py
 
 etf_lates/
 ├── run_analysis.py          # Main analysis entry point
-├── run_dashboard.py         # Interactive dashboard
-├── analyzers/               # 🎯 ALL ANALYSIS COMPONENTS (7 files)
+├── run_dashboard.py         # Interactive dashboard (port 8050)
+├── auto_commit.py           # Git automation script
+├── backtest.py              # Top 10 ETF portfolio backtesting
+├── analyzers/               # 🎯 ALL ANALYSIS COMPONENTS (9 files)
 │   ├── ml_ensemble_production.py    # ML models (10 validated features)
 │   ├── risk_component.py            # Risk analysis (CVaR, Ulcer, Beta, IR)
 │   ├── percentile_ranker.py         # Ranking system
 │   ├── etf_risk_classifier.py       # Risk classification (LOW/MEDIUM/HIGH)
 │   ├── regime_detector.py           # Market regime detection
 │   ├── batch_data_fetcher.py        # Data optimization
-│   └── kalman_hull.py               # Momentum analysis
+│   ├── kalman_hull.py               # Momentum analysis
+│   └── single_ticker_analyzer.py    # Individual ETF analysis
 ├── system/                  # 🎯 CORE ORCHESTRATION (4 files)
 │   ├── orchestrator.py              # Main system coordinator
 │   ├── run_analysis.py              # Analysis runner
@@ -67,14 +71,14 @@ etf_lates/
 │   ├── etf_database.py              # 385 ETFs with names (CORE DATABASE)
 │   ├── data_manager.py              # Unified data access
 │   └── external_data.py             # External market data
-├── data/                    # 🎯 DATA STORAGE (766 files)
-│   ├── historical/                  # 756 ETF price files (30.7MB)
-│   ├── external/                    # 5 market data files (VIX, rates, gold)
+├── data/                    # 🎯 DATA STORAGE (800+ files)
+│   ├── historical/                  # 756+ ETF price files (30.7MB+)
+│   ├── external/                    # 5+ market data files (VIX, rates, gold)
 │   └── rankings/                    # Risk-based analysis results
 ├── config/                  # 🎯 PRODUCTION CONFIGURATION (2 files)
 │   ├── production_config.py        # 10 validated ML features
 │   └── production_config.json      # Feature configuration
-├── dashboard/               # 🎯 WEB INTERFACE (4 files)
+├── dashboard/               # 🎯 WEB INTERFACE (Dash-based)
 │   ├── app.py                       # Main Dash application
 │   ├── data_loader.py               # Data utilities
 │   └── growth_components.py         # Growth strategy pages
@@ -82,6 +86,9 @@ etf_lates/
 │   ├── macro_framework.py           # Economic cycle analysis
 │   ├── geopolitical_framework.py    # Geopolitical risk analysis
 │   └── integrated_framework.py      # Combined risk assessment
+├── r&d/                     # 🔬 RESEARCH & DEVELOPMENT
+│   ├── README.md                    # R&D project documentation
+│   └── data_filtration/             # Data filtration prototype (1 file)
 └── docs/                    # 🎯 DOCUMENTATION (1 file)
     └── README.md                    # Quick start guide
 ```
@@ -172,8 +179,15 @@ The system generates:
 
 ### Dependencies
 ```bash
-pip install pandas numpy yfinance scikit-learn dash plotly
+pip install pandas numpy yfinance scikit-learn dash plotly scipy
 ```
+
+### Core Libraries Used
+- **Dash**: Web dashboard framework (not Streamlit/Flask)
+- **yfinance**: Financial data from Yahoo Finance
+- **scikit-learn**: Machine learning models
+- **pandas/numpy**: Data processing
+- **plotly**: Interactive visualizations
 
 ### Data Requirements
 - **Internet connection** for real-time data
@@ -216,6 +230,7 @@ pip install pandas numpy yfinance scikit-learn dash plotly
 **Last Updated**: December 2025  
 **Version**: Production Ready with ETF Names  
 **Total ETFs**: 385 with integrated names  
+**Dashboard**: Dash-based on port 8050  
 **Status**: ✅ Ready for Production Use
 
 ---

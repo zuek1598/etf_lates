@@ -20,15 +20,18 @@
 etf_lates/
 ├── README.md              # Main documentation (START HERE)
 ├── run_analysis.py        # Main analysis with ETF names
-├── run_dashboard.py       # Interactive dashboard
-├── analyzers/             # 🎯 ALL ANALYSIS COMPONENTS (7 files)
+├── run_dashboard.py       # Interactive dashboard (port 8050)
+├── auto_commit.py         # Git automation script
+├── backtest.py            # Top 10 ETF portfolio backtesting
+├── analyzers/             # 🎯 ALL ANALYSIS COMPONENTS (9 files)
 ├── system/                # 🎯 CORE ORCHESTRATION (4 files)
 ├── utilities/             # 🎯 ESSENTIAL UTILITIES (3 files)
 ├── data_manager/          # 🎯 DATA ACCESS LAYER (3 files)
-├── data/                  # 🎯 DATA STORAGE (766 files)
+├── data/                  # 🎯 DATA STORAGE (800+ files)
 ├── config/                # 🎯 PRODUCTION CONFIGURATION (2 files)
-├── dashboard/             # 🎯 WEB INTERFACE (4 files)
+├── dashboard/             # 🎯 Dash WEB INTERFACE
 ├── frameworks/            # 🎯 RISK OVERLAY FRAMEWORKS (3 files)
+├── r&d/                   # 🔬 RESEARCH & DEVELOPMENT
 └── docs/                  # 🎯 DOCUMENTATION (1 file)
 ```
 
@@ -63,6 +66,27 @@ Rank  Ticker      Name                                              Score
 ---
 
 ## 🚀 Usage
+
+### Run Analysis
+```bash
+python run_analysis.py
+```
+
+### Launch Dashboard
+```bash
+python run_dashboard.py
+```
+Dashboard URL: **http://127.0.0.1:8050/**
+
+### Auto-commit Changes
+```bash
+python auto_commit.py
+```
+
+### Run Backtest
+```bash
+python backtest.py
+```
 
 ```python
 from data_manager.etf_database import ETFDatabase
