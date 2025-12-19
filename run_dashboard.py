@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
 Dashboard Launcher for Modified ETF Analysis System
-Runs the Dash web application on port 8051
+Runs the Dash web application on port 8050
 
 Usage:
     python3 run_dashboard.py
     
-Then open: http://127.0.0.1:8051/
+Then open: http://127.0.0.1:8050/
 """
 
 import sys
